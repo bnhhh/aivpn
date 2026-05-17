@@ -1,2 +1,2 @@
 # openslips
-Cấu hình VPN bằng giao thức OpenVPN ứng dụng AI và Slips IDS để phòng thủ cho doanh nghiệp
+Cấu hình VPN bằng Wireguard kết hợp Slips IDS để giám sát lưu lượng
