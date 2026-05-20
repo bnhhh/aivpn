@@ -84,7 +84,7 @@ class AIVPN_Gateway:
         self.beacon_detector = BehavioralDetector(history_limit=10, cv_threshold=0.10, min_interval=1.0, cooldown_time=10.0)
         
         # Khởi tạo Lớp 4: Risk Manager
-        self.scorer = ScoringEngine(block_threshold=1.0, decay_factor=0.95, min_score=0.05)
+        self.scorer = ScoringEngine(block_threshold=1.0, decay_factor=0.98, min_score=0.05)
         self.blocker = FirewallBlocker()
         
         # Các thread quản lý
@@ -160,8 +160,8 @@ class AIVPN_Gateway:
     def _run_time_decay_loop(self) -> None:
         """Luồng chạy ngầm thực hiện suy hao điểm rủi ro theo chu kỳ thời gian."""
         while self.running:
-            # Chạy suy hao mỗi 10 giây để dễ demo (trong thực tế có thể là 60 giây)
-            time.sleep(10.0)
+            # Chạy suy hao mỗi 60 giây để dễ demo (trong thực tế có thể là 60 giây)
+            time.sleep(60.0)
             
             # Áp dụng công thức suy hao
             self.scorer.apply_decay()
