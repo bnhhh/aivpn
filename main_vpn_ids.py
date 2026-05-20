@@ -37,7 +37,7 @@ import importlib
 
 zeek_tailer = importlib.import_module("2_data_parser.zeek_tailer")
 ZeekTailer = zeek_tailer.ZeekTailer
-ZeekLogSimulator = zeek_tailer.ZeekLogSimulator
+#ZeekLogSimulator = zeek_tailer.ZeekLogSimulator
 
 scan_detector = importlib.import_module("3_detection_engine.scan_detector")
 ScanDetector = scan_detector.ScanDetector
@@ -75,7 +75,7 @@ class AIVPN_Gateway:
         self.running = False
         
         # Khởi tạo Lớp 2: Parser & Simulator
-        self.simulator = ZeekLogSimulator(log_path=self.log_path, interval=1.2)
+        #self.simulator = ZeekLogSimulator(log_path=self.log_path, interval=1.2)
         self.tailer = ZeekTailer(log_path=self.log_path)
         
         # Khởi tạo Lớp 3: Detection Engine
@@ -96,10 +96,10 @@ class AIVPN_Gateway:
         self.running = True
         
         # 1. Khởi chạy Simulator để liên tục ghi log kết nối ảo
-        self.simulator.start()
+        #self.simulator.start()
         
         # Đợi 1 giây để simulator khởi tạo file log
-        time.sleep(1.0)
+        #time.sleep(1.0)
         
         # 2. Khởi chạy luồng Tailer lắng nghe và phân tích log thời gian thực
         self.tailer_thread = threading.Thread(target=self._run_log_pipeline, daemon=True)
@@ -178,8 +178,8 @@ class AIVPN_Gateway:
         self.running = False
         
         # Dừng simulator
-        self.simulator.stop()
-        self.simulator.join(timeout=2.0)
+        #self.simulator.stop()
+        #self.simulator.join(timeout=2.0)
         
         print(f"{Colors.GREEN}[SYSTEM] Đã tắt toàn bộ Gateway và các thread con an toàn.{Colors.RESET}")
 
@@ -191,7 +191,8 @@ if __name__ == "__main__":
     print("=" * 80)
 
     # Đường dẫn log
-    LOG_FILE = os.path.join("dataset", "conn.log")
+    #LOG_FILE = os.path.join("dataset", "conn.log")
+    LOG_FILE = "/opt/zeek/logs/current/conn.log"
     
     # Khởi chạy hệ thống Gateway
     gateway = AIVPN_Gateway(log_path=LOG_FILE)
