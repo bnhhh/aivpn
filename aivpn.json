@@ -1,0 +1,126 @@
+{
+  "project_name": "Mini AI VPN Gateway",
+  "version": "1.0.0",
+  "description": "Hệ thống phát hiện xâm nhập và chấm điểm rủi ro cho VPN dựa trên hành vi (cảm hứng từ Slips).",
+  "current_phase": "Phase 1 - Terminal Logging & Core Logic",
+  "architecture_layers": [
+    "Layer 1: VPN & Capture (WireGuard + Zeek)",
+    "Layer 2: Data Parsing (Realtime Log Tailer)",
+    "Layer 3: AI & Detection Engine (Scan, DNS, Markov)",
+    "Layer 4: Risk Manager & Scoring"
+  ],
+  "tasks_roadmap": [
+    {
+      "task_id": "T01",
+      "name": "Khởi tạo cấu trúc dự án",
+      "status": "TODO"
+    },
+    {
+      "task_id": "T02",
+      "name": "Viết zeek_tailer.py để đọc realtime conn.log",
+      "status": "TODO"
+    },
+    {
+      "task_id": "T03",
+      "name": "Xây dựng Scan Detector (Phát hiện Port Scan)",
+      "status": "TODO"
+    },
+    {
+      "task_id": "T04",
+      "name": "Xây dựng DNS Detector (Phát hiện DNS Tunneling)",
+      "status": "TODO"
+    },
+    {
+      "task_id": "T05",
+      "name": "Xây dựng Scoring Engine (Tính điểm & Decay)",
+      "status": "TODO"
+    },
+    {
+      "task_id": "T06",
+      "name": "Tích hợp Main App và Terminal UI màu",
+      "status": "TODO"
+    }
+  ],
+  "file_structure_and_specs": [
+    {
+      "file_path": "2_data_parser/zeek_tailer.py",
+      "module": "Data Parser",
+      "description": "Theo dõi và parse liên tục các dòng mới từ file log của Zeek.",
+      "technical_spec": {
+        "input": "Đường dẫn file (VD: /opt/zeek/logs/current/conn.log)",
+        "logic": "Sử dụng logic giống lệnh 'tail -f'. Khi có dòng mới, dùng Regex hoặc JSON parser để trích xuất dict dữ liệu.",
+        "output": "Dictionary chứa: {timestamp, id.orig_h, id.resp_h, id.resp_p, proto}"
+      }
+    },
+    {
+      "file_path": "3_detection_engine/scan_detector.py",
+      "module": "Detection Engine",
+      "description": "Phát hiện hành vi rà quét cổng (Port Scan) và quét mạng (Lateral Movement).",
+      "technical_spec": {
+        "input": "Stream các dict dữ liệu từ zeek_tailer",
+        "logic": "Duy trì một bộ đếm (Counter) trong bộ nhớ (VD: dictionary). Đếm số lượng 'id.resp_p' (cổng đích) duy nhất mà một 'id.orig_h' (IP nguồn) truy cập trong Window time 10 giây.",
+        "threshold": "Nếu > 10 ports/10s -> Kích hoạt Evidence.",
+        "output": "Evidence Object: {ip_nguon, thoi_gian, loai_canh_bao: 'PORT_SCAN', trong_so: 0.4}"
+      }
+    },
+    {
+      "file_path": "3_detection_engine/dns_detector.py",
+      "module": "Detection Engine",
+      "description": "Phát hiện truy vấn DNS có dấu hiệu C2/Tunneling.",
+      "technical_spec": {
+        "input": "Dữ liệu từ dns.log",
+        "logic": "Kiểm tra độ dài domain hoặc tính entropy của chuỗi domain (để bắt %RANDOM%.malware.com). Đối chiếu với danh sách TLD đáng ngờ.",
+        "output": "Evidence Object: {ip_nguon, thoi_gian, loai_canh_bao: 'DNS_TUNNEL', trong_so: 0.6}"
+      }
+    },
+    {
+      "file_path": "4_risk_manager/scoring_engine.py",
+      "module": "Risk Manager",
+      "description": "Quản lý điểm rủi ro tập trung, áp dụng thuật toán cộng dồn và Time Decay.",
+      "technical_spec": {
+        "input": "Nhận Evidence Object từ các module lớp 3.",
+        "logic": "RiskScore(t) = RiskScore(t-1) * Decay_Factor + Evidence_Weight. (Decay_Factor < 1, VD: 0.95 sau mỗi phút).",
+        "threshold_alert": "Ngưỡng cảnh báo: 0.8",
+        "output": "Trạng thái IP: Bình thường / Cảnh báo / Block"
+      }
+    },
+    {
+      "file_path": "main_vpn_ids.py",
+      "module": "Core",
+      "description": "File khởi chạy chính. Khởi tạo các thread, kết nối luồng dữ liệu từ parser -> engine -> scorer và in ra Terminal.",
+      "technical_spec": {
+        "dependencies": ["colorama", "time", "threading"]
+      }
+    }
+  ],
+  "example_terminal_outputs": [
+    {
+      "type": "INFO",
+      "text": "[2026-05-20 11:31:00] [SYSTEM] AI VPN Gateway khởi động. Đang lắng nghe trên wg0..."
+    },
+    {
+      "type": "DEBUG",
+      "text": "[2026-05-20 11:31:05] [PARSER] Nhận luồng mới: 10.38.50.3:54321 -> 10.38.50.1:80 (TCP)"
+    },
+    {
+      "type": "WARNING",
+      "text": "[2026-05-20 11:31:10] [SCAN_DETECT] IP 10.38.50.3 quét 15 ports trong 2s! Gửi bằng chứng (Weight: 0.4)."
+    },
+    {
+      "type": "UPDATE",
+      "text": "[2026-05-20 11:31:10] [SCORER] Threat Score IP 10.38.50.3 cập nhật: 0.0 -> 0.4"
+    },
+    {
+      "type": "WARNING",
+      "text": "[2026-05-20 11:31:15] [DNS_DETECT] IP 10.38.50.3 truy vấn domain lạ: x8f9a.malware-c2.evil.com! Gửi bằng chứng (Weight: 0.6)."
+    },
+    {
+      "type": "CRITICAL",
+      "text": "[2026-05-20 11:31:15] [SCORER] Threat Score IP 10.38.50.3 vượt ngưỡng: 1.0! [>>> YÊU CẦU BLOCK <<<]"
+    },
+    {
+      "type": "INFO",
+      "text": "[2026-05-20 11:32:00] [SCORER] [TIME DECAY] IP 10.38.50.4 không có dấu hiệu mới. Threat Score: 0.3 -> 0.28"
+    }
+  ]
+}
