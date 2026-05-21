@@ -1,1 +1,28 @@
-"yaml" 
+# slips.yaml - Mini AI VPN Gateway Configuration File
+# Inspired by Stratosphere Linux IPS (Slips)
+
+gateway:
+  interface: "wg0"
+  log_dir: "dataset"
+  conn_log_name: "conn.log"
+
+detection:
+  scan:
+    window_size: 10.0
+    port_threshold: 10
+    ip_threshold: 5
+    cooldown_time: 10.0
+  dns:
+    entropy_threshold: 3.6
+    length_threshold: 30
+  beacon:
+    history_limit: 10
+    cv_threshold: 0.10
+    min_interval: 1.0
+    cooldown_time: 10.0
+
+risk_manager:
+  threat_threshold: 1.0
+  time_decay_factor: 0.95
+  min_score: 0.05
+  dry_run: true

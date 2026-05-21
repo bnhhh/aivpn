@@ -196,39 +196,57 @@ class ZeekTailer:
     def tail(self) -> Generator[Dict[str, Any], None, None]:
         """
         Lắng nghe liên tục các dòng mới được thêm vào file log.
-        Yields:
-            Dict chứa thông tin log đã được parse thành công.
+        Hỗ trợ phục hồi tự động khi có hiện tượng Log Rotation (xoay vòng log).
         """
-        # Đợi cho tới khi file log được tạo
-        while not os.path.exists(self.log_path):
-            time.sleep(0.5)
+        while True:
+            # 1. Đợi cho tới khi file log được tạo
+            while not os.path.exists(self.log_path):
+                time.sleep(0.5)
 
-        with open(self.log_path, "r", encoding="utf-8") as f:
-            # Di chuyển con trỏ tới cuối file log hiện tại (tail -f hành vi chuẩn)
-            f.seek(0, os.SEEK_END)
-            
-            # Biến lưu trữ size hiện tại để phát hiện file log bị xoay vòng (truncated)
-            last_size = os.path.getsize(self.log_path)
+            try:
+                with open(self.log_path, "r", encoding="utf-8") as f:
+                    # Di chuyển con trỏ tới cuối file log hiện tại (tail -f hành vi chuẩn)
+                    f.seek(0, os.SEEK_END)
+                    last_size = os.path.getsize(self.log_path)
+                    
+                    # Lấy inode của tệp tin hiện tại (đặc trưng duy nhất của tệp trên Linux/OS)
+                    try:
+                        inode = os.stat(self.log_path).st_ino
+                    except AttributeError:
+                        inode = None
 
-            while True:
-                curr_size = os.path.getsize(self.log_path)
-                
-                # Nếu file bị rút gọn (ví dụ: LogRotate hoặc Simulator clear)
-                if curr_size < last_size:
-                    print(f"{Colors.YELLOW}[SYSTEM] Phát hiện file log bị cắt/xoay vòng. Đọc lại từ đầu.{Colors.RESET}")
-                    f.seek(0, os.SEEK_SET)
-                
-                last_size = curr_size
-                line = f.readline()
-                
-                if not line:
-                    time.sleep(0.1)  # Giảm tải CPU
-                    continue
-                
-                # Parse dòng log vừa nhận
-                parsed_data = self._parse_line(line.strip())
-                if parsed_data:
-                    yield parsed_data
+                    while True:
+                        if not os.path.exists(self.log_path):
+                            # Tệp tin bị xóa đột ngột
+                            break
+
+                        curr_size = os.path.getsize(self.log_path)
+                        
+                        try:
+                            curr_inode = os.stat(self.log_path).st_ino
+                        except (AttributeError, FileNotFoundError):
+                            curr_inode = None
+
+                        # Nếu file bị rút gọn kích thước hoặc bị thay đổi inode (do xoay vòng file log)
+                        if curr_size < last_size or (inode is not None and curr_inode != inode):
+                            print(f"{Colors.YELLOW}[SYSTEM] Phát hiện file log bị xoay vòng (Log Rotation). Mở lại file mới...{Colors.RESET}")
+                            break  # Thoát vòng lặp con để mở lại tệp mới từ đầu
+
+                        last_size = curr_size
+                        line = f.readline()
+
+                        if not line:
+                            time.sleep(0.1)  # Giảm tải CPU
+                            continue
+
+                        # Parse dòng log vừa nhận
+                        parsed_data = self._parse_line(line.strip())
+                        if parsed_data:
+                            yield parsed_data
+            except (FileNotFoundError, PermissionError):
+                # Tạm dừng ngắn nếu tệp đang trong quá trình chuyển giao xoay vòng
+                time.sleep(0.5)
+                continue
 
     def _parse_line(self, line: str) -> Optional[Dict[str, Any]]:
         """Phân tích cú pháp dòng log dạng JSON hoặc Text sang Dictionary."""
