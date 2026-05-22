@@ -264,7 +264,9 @@ class ZeekTailer:
                 "id.resp_h": data.get("id.resp_h"),
                 "id.resp_p": data.get("id.resp_p"),
                 "proto": str(data.get("proto")).upper(),
-                "query": data.get("query")  # Kèm theo nếu có (dành cho DNS tunneling)
+                "query": data.get("query"),  # Kèm theo nếu có (dành cho DNS tunneling)
+                "duration": data.get("duration"),
+                "orig_bytes": data.get("orig_bytes")
             }
         except json.JSONDecodeError:
             pass  # Nếu không phải JSON, tiếp tục thử dùng Regex cho TSV

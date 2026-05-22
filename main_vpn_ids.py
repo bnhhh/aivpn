@@ -2,17 +2,20 @@
 # -*- coding: utf-8 -*-
 
 """
-Mini AI VPN Gateway - Main Application Coordinator (Dynamic Upgrade)
+Mini AI VPN Gateway - Main Application Coordinator (Deep Learning LSTM Upgrade)
 Tác giả: Chuyên gia Kiến trúc An toàn Thông tin & Kỹ sư Python Backend cấp cao
 Mô tả:
-    - File khởi chạy chính (Main Coordinator).
-    - Khởi tạo hệ thống Gateway bằng cách nạp cấu hình động từ `slips.yaml` (dùng PyYAML)
-      và nạp danh sách loại trừ tin cậy từ `whitelist.conf` (thông qua WhitelistParser).
-    - Phối hợp và vận hành đa luồng các Layer trong kiến trúc 4 lớp:
+    - File khởi chạy chính (Main Coordinator) phiên bản Deep Learning.
+    - Khởi tạo hệ thống Gateway bằng cách nạp cấu hình động từ `slips.yaml`
+      và nạp danh sách loại trừ tin cậy từ `whitelist.conf`.
+    - Phối hợp và vận hành luồng xử lý:
         + Đọc log thời gian thực bền bỉ, chống crash khi log rotation (Layer 2).
-        + Kiểm tra whitelist sớm nhất có thể để bypass ngay lập tức, tiết kiệm RAM/CPU.
-        + Chuyển tiếp luồng không whitelist qua các bộ phát hiện hành vi nguy hiểm (Layer 3).
-        + Tính toán điểm rủi ro tập trung, tự động time decay và block IP qua iptables (Layer 4).
+        + Kiểm tra whitelist sớm nhất có thể để bypass ngay lập tức.
+        + Chuyển tiếp kết nối không whitelisted sang Log Discretizer để mã hóa chuỗi thời gian (Layer 2).
+        + Sử dụng collections.deque(maxlen=20) để lưu trữ Rolling Window (Sliding Window FIFO) cho từng IP.
+        + Giải quyết an toàn sự cố "Khởi động nguội" (Cold Start): Chỉ suy luận khi nạp đủ 20 ký tự.
+        + Dự đoán rủi ro bằng mạng LSTM thông qua ScoringEngine V2 (Layer 4).
+        + Thực thi chặn IP độc hại qua FirewallBlocker (iptables) (Layer 4).
 """
 
 import os
@@ -57,29 +60,22 @@ class Colors:
     WHITE = Fore.WHITE if HAS_COLORAMA else ""
 
 
-# --- IMPORT ĐỘNG CÁC LAYER THÀNH PHẦN (Tránh lỗi decimal literal do tên thư mục bắt đầu bằng số) ---
+# --- IMPORT ĐỘNG CÁC LAYER THÀNH PHẦN ---
 import importlib
 
-# Layer 2: Log Tailer & Whitelist Parser
+# Layer 2: Log Tailer & Whitelist Parser & Log Discretizer
 zeek_tailer = importlib.import_module("2_data_parser.zeek_tailer")
 ZeekTailer = zeek_tailer.ZeekTailer
 
 whitelist_parser = importlib.import_module("2_data_parser.whitelist_parser")
 WhitelistParser = whitelist_parser.WhitelistParser
 
-# Layer 3: Detection Engine (Scan, DNS, C2/Beacon)
-scan_detector = importlib.import_module("3_detection_engine.scan_detector")
-ScanDetector = scan_detector.ScanDetector
+log_discretizer = importlib.import_module("2_data_parser.log_discretizer")
+LogDiscretizer = log_discretizer.LogDiscretizer
 
-dns_detector = importlib.import_module("3_detection_engine.dns_detector")
-DNSDetector = dns_detector.DNSDetector
-
-markov_behavior = importlib.import_module("3_detection_engine.markov_behavior")
-BehavioralDetector = markov_behavior.BehavioralDetector
-
-# Layer 4: Risk Manager & Firewall Blocker
-scoring_engine = importlib.import_module("4_risk_manager.scoring_engine")
-ScoringEngine = scoring_engine.ScoringEngine
+# Layer 4: AI Risk Manager & Firewall Blocker
+scoring_engine_v2 = importlib.import_module("4_risk_manager.scoring_engine_v2")
+ScoringEngine = scoring_engine_v2.ScoringEngine
 
 firewall_blocker = importlib.import_module("4_risk_manager.firewall_blocker")
 FirewallBlocker = firewall_blocker.FirewallBlocker
@@ -87,7 +83,7 @@ FirewallBlocker = firewall_blocker.FirewallBlocker
 
 class AIVPN_Gateway:
     """
-    Hệ thống Gateway điều khiển trung tâm (Mini AI VPN Gateway).
+    Hệ thống Gateway điều khiển trung tâm (Mini AI VPN Gateway) - Phiên bản LSTM AI.
     Quản lý luồng dữ liệu thời gian thực từ cấu hình slips.yaml và whitelist.conf.
     """
     def __init__(self, config_path: str = "config/slips.yaml", whitelist_path: str = "config/whitelist.conf"):
@@ -109,48 +105,29 @@ class AIVPN_Gateway:
         conn_log_name = gateway_cfg.get("conn_log_name", "conn.log")
         self.log_path = os.path.join(log_dir, conn_log_name)
         
-        # 4. Khởi tạo Lớp 2: Log Tailer
+        # 4. Khởi tạo Lớp 2: Log Tailer & Log Discretizer (LSTM Sliding Buffer maxlen=20)
         self.tailer = ZeekTailer(log_path=self.log_path)
+        self.discretizer = LogDiscretizer(max_len=20)
         
-        # 5. Khởi tạo Lớp 3: Detection Engine (Tiêm cấu hình từ YAML)
-        det_cfg = self.config.get("detection", {})
-        
-        scan_cfg = det_cfg.get("scan", {})
-        self.scan_detector = ScanDetector(
-            window_size=float(scan_cfg.get("window_size", 10.0)),
-            port_threshold=int(scan_cfg.get("port_threshold", 10)),
-            ip_threshold=int(scan_cfg.get("ip_threshold", 5)),
-            cooldown_time=float(scan_cfg.get("cooldown_time", 10.0))
-        )
-        
-        dns_cfg = det_cfg.get("dns", {})
-        self.dns_detector = DNSDetector(
-            entropy_threshold=float(dns_cfg.get("entropy_threshold", 3.6)),
-            length_threshold=int(dns_cfg.get("length_threshold", 30))
-        )
-        
-        beacon_cfg = det_cfg.get("beacon", {})
-        self.beacon_detector = BehavioralDetector(
-            history_limit=int(beacon_cfg.get("history_limit", 10)),
-            cv_threshold=float(beacon_cfg.get("cv_threshold", 0.10)),
-            min_interval=float(beacon_cfg.get("min_interval", 1.0)),
-            cooldown_time=float(beacon_cfg.get("cooldown_time", 10.0))
-        )
-        
-        # 6. Khởi tạo Lớp 4: Risk Manager & Blocker (Tiêm cấu hình từ YAML)
+        # 5. Khởi tạo Lớp 4: Risk Manager (LSTM Model) & Blocker (Tiêm cấu hình từ YAML)
         risk_cfg = self.config.get("risk_manager", {})
+        threat_threshold = float(risk_cfg.get("threat_threshold", 0.8))
+        # Nếu cấu hình slips.yaml có threat_threshold bằng 1.0 (cấu hình cũ), ta chuyển về 0.8 để mô hình LSTM phát hiện Beacon hiệu quả hơn
+        if threat_threshold >= 1.0:
+            threat_threshold = 0.8
+            
+        model_path = risk_cfg.get("model_path", "lstm_model.tflite")
+        
         self.scorer = ScoringEngine(
-            block_threshold=float(risk_cfg.get("threat_threshold", 1.0)),
-            decay_factor=float(risk_cfg.get("time_decay_factor", 0.95)),
-            min_score=float(risk_cfg.get("min_score", 0.05))
+            model_path=model_path,
+            threat_threshold=threat_threshold
         )
         self.blocker = FirewallBlocker(
             dry_run=bool(risk_cfg.get("dry_run", True))
         )
         
-        # Threads quản lý nền
+        # Thread quản lý nền
         self.tailer_thread: Optional[threading.Thread] = None
-        self.decay_thread: Optional[threading.Thread] = None
 
     def _load_yaml_config(self) -> Dict[str, Any]:
         """Đọc và kiểm tra cấu trúc file cấu hình slips.yaml."""
@@ -171,21 +148,18 @@ class AIVPN_Gateway:
         """Khởi chạy toàn bộ hệ thống Mini AI VPN Gateway."""
         self.running = True
         
-        # 1. Khởi chạy luồng Tailer lắng nghe và phân tích log thời gian thực
+        # Khởi chạy luồng Tailer lắng nghe và phân tích log thời gian thực
         self.tailer_thread = threading.Thread(target=self._run_log_pipeline, daemon=True)
         self.tailer_thread.start()
-        
-        # 2. Khởi chạy luồng Định kỳ Suy hao Điểm rủi ro (Time Decay)
-        self.decay_thread = threading.Thread(target=self._run_time_decay_loop, daemon=True)
-        self.decay_thread.start()
 
         start_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(
             f"{Colors.DIM}[{start_ts}]{Colors.RESET} "
             f"{Colors.GREEN}{Colors.BRIGHT}[SYSTEM]{Colors.RESET} "
-            f"Hệ thống Mini AI VPN Gateway đang hoạt động trên interface {Colors.BRIGHT}{self.interface}{Colors.RESET}!"
+            f"Hệ thống Mini AI VPN Gateway LSTM đang hoạt động trên interface {Colors.BRIGHT}{self.interface}{Colors.RESET}!"
         )
-        print(f"{Colors.DIM}[SYSTEM] File log đang giám sát: {self.log_path}{Colors.RESET}\n")
+        print(f"{Colors.DIM}[SYSTEM] File log đang giám sát: {self.log_path}{Colors.RESET}")
+        print(f"{Colors.DIM}[SYSTEM] Ngưỡng rủi ro AI (Threat Threshold): {self.scorer.threat_threshold * 100:.1f}%{Colors.RESET}\n")
 
     def _run_log_pipeline(self) -> None:
         """Đường ống tiếp nhận log và điều phối đến các Layer phân tích."""
@@ -199,6 +173,9 @@ class AIVPN_Gateway:
                 ip_dst = parsed_log.get("id.resp_h")
                 domain = parsed_log.get("query")
                 
+                if not ip_src:
+                    continue
+
                 # 1. Kiểm tra Whitelist kiểm soát ngay tại cổng ngõ vào
                 if self.whitelist.is_whitelisted(ip_src=ip_src, ip_dst=ip_dst, domain=domain):
                     ts_val = parsed_log.get("timestamp")
@@ -222,54 +199,48 @@ class AIVPN_Gateway:
                     )
                     continue  # Bỏ qua hoàn toàn, không phân tích, tiết kiệm CPU/RAM
                 
-                # In luồng kết nối hợp lệ chưa bị lọc ra terminal
+                # In luồng kết nối hợp lệ chưa bị lọc ra terminal bằng ZeekTailer
                 self.tailer.print_log(parsed_log)
                 
-                # Danh sách các bằng chứng nguy hại thu thập được từ dòng log hiện tại
-                evidences = []
+                # 2. Đẩy log kết nối vào Log Discretizer để mã hóa ký tự và lưu buffer trượt maxlen=20
+                char, window, is_ready, current_len = self.discretizer.process_log(parsed_log)
+                if not char:
+                    continue
+
+                ts_val = parsed_log.get("timestamp")
+                if isinstance(ts_val, (int, float)):
+                    ts_str = datetime.fromtimestamp(ts_val).strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    ts_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                # In log phân tích Discretizer (màu vàng) cho gói tin hiện tại
+                print(
+                    f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
+                    f"{Colors.YELLOW}[DISCRETIZER]{Colors.RESET} "
+                    f"Mã hóa kết nối IP {Colors.GREEN}{ip_src}{Colors.RESET} -> Ký tự: '{Colors.BRIGHT}{Colors.MAGENTA}{char}{Colors.RESET}'"
+                )
+
+                # 3. Kiểm tra bảo vệ Cold Start (Graceful Wait)
+                if not is_ready:
+                    # Tuyệt đối không đưa vào AI suy luận khi chưa đủ 20 ký tự
+                    # Chỉ in log lưu trữ thu thập dữ liệu (màu vàng)
+                    print(
+                        f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
+                        f"{Colors.YELLOW}[COLD_START]{Colors.RESET} "
+                        f"IP {Colors.GREEN}{ip_src}{Colors.RESET} đang thu thập dữ liệu chuỗi: "
+                        f"{Colors.YELLOW}{current_len}/20{Colors.RESET} ký tự. {Colors.DIM}[Buffer: {''.join(window)}]{Colors.RESET}"
+                    )
+                    continue
+
+                # 4. Đẩy chuỗi 20 ký tự qua AI Scoring Engine V2 để dự đoán xác suất độc hại
+                prob, is_malicious = self.scorer.evaluate_sequence(ip_src, window, ts_val)
                 
-                # Gửi qua Scan Detector (Lớp 3)
-                ev_scan = self.scan_detector.process_log(parsed_log)
-                if ev_scan:
-                    evidences.append(ev_scan)
-                    
-                # Gửi qua DNS Detector (Lớp 3)
-                ev_dns = self.dns_detector.process_log(parsed_log)
-                if ev_dns:
-                    evidences.append(ev_dns)
-                    
-                # Gửi qua Beaconing Detector (Lớp 3)
-                ev_beacon = self.beacon_detector.process_log(parsed_log)
-                if ev_beacon:
-                    evidences.append(ev_beacon)
-                    
-                # Cộng dồn điểm rủi ro và thực thi hành động ngăn chặn (Lớp 4)
-                for ev in evidences:
-                    ip = ev["ip"]
-                    # Cộng điểm rủi ro
-                    self.scorer.add_evidence(ev)
-                    
-                    # Thực hiện chặn IP trên Firewall nếu điểm rủi ro vượt ngưỡng
-                    if self.scorer.is_blocked(ip):
-                        self.blocker.block_ip(ip)
+                # 5. Nếu phát hiện nguy hại vượt ngưỡng -> Thực thi Firewall Block qua iptables
+                if is_malicious:
+                    self.blocker.block_ip(ip_src)
 
         except Exception as e:
             print(f"{Colors.RED}[LỖI PIPELINE] Lỗi xảy ra khi xử lý luồng log: {e}{Colors.RESET}")
-
-    def _run_time_decay_loop(self) -> None:
-        """Luồng chạy ngầm thực hiện suy hao điểm rủi ro theo chu kỳ thời gian."""
-        while self.running:
-            # Chạy suy hao mỗi 30 giây để tối ưu kiểm thử (hoặc lấy từ config nếu cần thiết)
-            time.sleep(30.0)
-            
-            # Áp dụng công thức suy hao
-            self.scorer.apply_decay()
-            
-            # Đồng bộ hóa Firewall Blocker với ScoringEngine
-            # Nếu IP đã tụt điểm rủi ro xuống dưới ngưỡng block -> Tiến hành gỡ chặn (UNBLOCK)
-            for blocked_ip in list(self.blocker.active_blocks):
-                if not self.scorer.is_blocked(blocked_ip):
-                    self.blocker.unblock_ip(blocked_ip)
 
     def stop(self) -> None:
         """Dừng hoạt động toàn bộ gateway an toàn."""
@@ -281,7 +252,7 @@ class AIVPN_Gateway:
 # --- KHỞI CHẠY CHƯƠNG TRÌNH CHÍNH ---
 if __name__ == "__main__":
     print("=" * 80)
-    print(f" {Colors.GREEN}{Colors.BRIGHT}Mini AI VPN Gateway - Tích Hợp Cấu Hình Slips & Whitelist{Colors.RESET} ")
+    print(f" {Colors.GREEN}{Colors.BRIGHT}Mini AI VPN Gateway - Tích Hợp Mô Hình Deep Learning LSTM{Colors.RESET} ")
     print("=" * 80)
 
     # Đăng ký các file cấu hình

@@ -1,25 +1,42 @@
-{"ts": 1779378137.1159148, "id.orig_h": "8.8.8.8", "id.orig_p": 53, "id.resp_h": "192.168.1.2", "id.resp_p": 443, "proto": "TCP"}
-{"ts": 1779378137.2159147, "id.orig_h": "10.38.50.5", "id.orig_p": 55214, "id.resp_h": "192.168.1.1", "id.resp_p": 80, "proto": "TCP"}
-{"ts": 1779378137.3159149, "id.orig_h": "192.168.1.5", "id.orig_p": 53535, "id.resp_h": "8.8.4.4", "id.resp_p": 53, "proto": "UDP", "query": "en.wikipedia.org"}
-{"ts": 1779378138.1159148, "id.orig_h": "192.168.1.4", "id.orig_p": 50001, "id.resp_h": "142.250.190.46", "id.resp_p": 80, "proto": "TCP"}
-{"ts": 1779378139.1159148, "id.orig_h": "192.168.1.100", "id.orig_p": 60000, "id.resp_h": "192.168.1.1", "id.resp_p": 20, "proto": "TCP"}
-{"ts": 1779378139.1659148, "id.orig_h": "192.168.1.100", "id.orig_p": 60001, "id.resp_h": "192.168.1.1", "id.resp_p": 21, "proto": "TCP"}
-{"ts": 1779378139.2159147, "id.orig_h": "192.168.1.100", "id.orig_p": 60002, "id.resp_h": "192.168.1.1", "id.resp_p": 22, "proto": "TCP"}
-{"ts": 1779378139.265915, "id.orig_h": "192.168.1.100", "id.orig_p": 60003, "id.resp_h": "192.168.1.1", "id.resp_p": 23, "proto": "TCP"}
-{"ts": 1779378139.3159149, "id.orig_h": "192.168.1.100", "id.orig_p": 60004, "id.resp_h": "192.168.1.1", "id.resp_p": 24, "proto": "TCP"}
-{"ts": 1779378139.3659148, "id.orig_h": "192.168.1.100", "id.orig_p": 60005, "id.resp_h": "192.168.1.1", "id.resp_p": 25, "proto": "TCP"}
-{"ts": 1779378139.4159148, "id.orig_h": "192.168.1.100", "id.orig_p": 60006, "id.resp_h": "192.168.1.1", "id.resp_p": 26, "proto": "TCP"}
-{"ts": 1779378139.4659147, "id.orig_h": "192.168.1.100", "id.orig_p": 60007, "id.resp_h": "192.168.1.1", "id.resp_p": 27, "proto": "TCP"}
-{"ts": 1779378139.515915, "id.orig_h": "192.168.1.100", "id.orig_p": 60008, "id.resp_h": "192.168.1.1", "id.resp_p": 28, "proto": "TCP"}
-{"ts": 1779378139.5659149, "id.orig_h": "192.168.1.100", "id.orig_p": 60009, "id.resp_h": "192.168.1.1", "id.resp_p": 29, "proto": "TCP"}
-{"ts": 1779378139.6159148, "id.orig_h": "192.168.1.100", "id.orig_p": 60010, "id.resp_h": "192.168.1.1", "id.resp_p": 30, "proto": "TCP"}
-{"ts": 1779378139.6659148, "id.orig_h": "192.168.1.100", "id.orig_p": 60011, "id.resp_h": "192.168.1.1", "id.resp_p": 31, "proto": "TCP"}
-{"ts": 1779378141.1159148, "id.orig_h": "192.168.1.100", "id.orig_p": 53535, "id.resp_h": "8.8.4.4", "id.resp_p": 53, "proto": "UDP", "query": "x8f9a.malware-c2.evil.com"}
-{"ts": 1779378143.1159148, "id.orig_h": "192.168.1.200", "id.orig_p": 49152, "id.resp_h": "185.112.144.33", "id.resp_p": 443, "proto": "TCP"}
-{"ts": 1779378144.6159148, "id.orig_h": "192.168.1.200", "id.orig_p": 49152, "id.resp_h": "185.112.144.33", "id.resp_p": 443, "proto": "TCP"}
-{"ts": 1779378146.1159148, "id.orig_h": "192.168.1.200", "id.orig_p": 49152, "id.resp_h": "185.112.144.33", "id.resp_p": 443, "proto": "TCP"}
-{"ts": 1779378147.6159148, "id.orig_h": "192.168.1.200", "id.orig_p": 49152, "id.resp_h": "185.112.144.33", "id.resp_p": 443, "proto": "TCP"}
-{"ts": 1779378149.1159148, "id.orig_h": "192.168.1.200", "id.orig_p": 49152, "id.resp_h": "185.112.144.33", "id.resp_p": 443, "proto": "TCP"}
-{"ts": 1779378150.6159148, "id.orig_h": "192.168.1.200", "id.orig_p": 49152, "id.resp_h": "185.112.144.33", "id.resp_p": 443, "proto": "TCP"}
-{"ts": 1779378152.1159148, "id.orig_h": "192.168.1.200", "id.orig_p": 49152, "id.resp_h": "185.112.144.33", "id.resp_p": 443, "proto": "TCP"}
-{"ts": 1779378153.6159148, "id.orig_h": "192.168.1.200", "id.orig_p": 49152, "id.resp_h": "185.112.144.33", "id.resp_p": 443, "proto": "TCP"}
+{"ts": 1779434889.4259126, "uid": "Ctest88942", "id.orig_h": "8.8.8.8", "id.orig_p": 50000, "id.resp_h": "192.168.1.100", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 1200}
+{"ts": 1779434889.5259125, "uid": "Ctest88952", "id.orig_h": "192.168.10.5", "id.orig_p": 50000, "id.resp_h": "1.1.1.1", "id.resp_p": 53, "proto": "UDP", "duration": 0.1, "orig_bytes": 75, "query": "en.wikipedia.org", "service": "dns"}
+{"ts": 1779434890.4259126, "uid": "Ctest89042", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434892.9259126, "uid": "Ctest89292", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434895.4259126, "uid": "Ctest89542", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434897.9259126, "uid": "Ctest89792", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434900.4259126, "uid": "Ctest90042", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434902.9259126, "uid": "Ctest90292", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434905.4259126, "uid": "Ctest90542", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434907.9259126, "uid": "Ctest90792", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434910.4259126, "uid": "Ctest91042", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434912.9259126, "uid": "Ctest91292", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779434914.4259126, "uid": "Ctest91442", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.2, "orig_bytes": 200}
+{"ts": 1779434954.4259126, "uid": "Ctest95442", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 12.0, "orig_bytes": 15000}
+{"ts": 1779434969.4259126, "uid": "Ctest96942", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 5.0, "orig_bytes": 5000}
+{"ts": 1779434974.4259126, "uid": "Ctest97442", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 800}
+{"ts": 1779435034.4259126, "uid": "Ctest3442", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 18.0, "orig_bytes": 32000}
+{"ts": 1779435037.9259126, "uid": "Ctest3792", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 1.2, "orig_bytes": 4000}
+{"ts": 1779435039.1259127, "uid": "Ctest3912", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 0.1, "orig_bytes": 100}
+{"ts": 1779435089.1259127, "uid": "Ctest8912", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 8.5, "orig_bytes": 12000}
+{"ts": 1779435097.1259127, "uid": "Ctest9712", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 3.2, "orig_bytes": 9500}
+{"ts": 1779435142.1259127, "uid": "Ctest14212", "id.orig_h": "192.168.10.11", "id.orig_p": 50000, "id.resp_h": "203.0.113.10", "id.resp_p": 443, "proto": "TCP", "duration": 14.0, "orig_bytes": 20000}
+{"ts": 1779436889.4259126, "uid": "Ctest88942", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436890.9259126, "uid": "Ctest89092", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436892.4259126, "uid": "Ctest89242", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436893.9259126, "uid": "Ctest89392", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436895.4259126, "uid": "Ctest89542", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436896.9259126, "uid": "Ctest89692", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436898.4259126, "uid": "Ctest89842", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436899.9259126, "uid": "Ctest89992", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436901.4259126, "uid": "Ctest90142", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436902.9259126, "uid": "Ctest90292", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436904.4259126, "uid": "Ctest90442", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436905.9259126, "uid": "Ctest90592", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436907.4259126, "uid": "Ctest90742", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436908.9259126, "uid": "Ctest90892", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436910.4259126, "uid": "Ctest91042", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436911.9259126, "uid": "Ctest91192", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436913.4259126, "uid": "Ctest91342", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436914.9259126, "uid": "Ctest91492", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436916.4259126, "uid": "Ctest91642", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}
+{"ts": 1779436917.9259126, "uid": "Ctest91792", "id.orig_h": "192.168.10.12", "id.orig_p": 50000, "id.resp_h": "203.0.113.66", "id.resp_p": 443, "proto": "TCP", "duration": 0.5, "orig_bytes": 500}

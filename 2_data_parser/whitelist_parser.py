@@ -44,9 +44,12 @@ class WhitelistParser:
         try:
             with open(self.filepath, "r", encoding="utf-8") as f:
                 for line in f:
+                    # Loại bỏ phần comment inline ở cuối dòng
+                    if "#" in line:
+                        line = line.split("#", 1)[0]
                     line = line.strip()
                     # Bỏ qua dòng trống hoặc dòng comment
-                    if not line or line.startswith("#"):
+                    if not line:
                         continue
                     
                     # 1. Thử parse dạng dải mạng CIDR (Có chứa dấu '/')
