@@ -3,7 +3,7 @@
 
 gateway:
   interface: "wg0"
-  log_dir: "dataset"
+  log_dir: "/opt/zeek/logs/current"
   conn_log_name: "conn.log"
 
 detection:
@@ -25,4 +25,4 @@ risk_manager:
   threat_threshold: 1.0
   time_decay_factor: 0.95
   min_score: 0.05
-  dry_run: true
+  dry_run: false
