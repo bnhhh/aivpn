@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 
 """
-Mini AI VPN Gateway - Automated System Integration Test V2 (LSTM Deep Learning)
+Mini AI VPN Gateway - Automated System Integration Test V2 (Evidence-based Upgrade)
 Tác giả: Chuyên gia Kiến trúc An toàn Thông tin & Kỹ sư Python Backend cấp cao
 Mô tả:
-    - Script này tự động hóa kiểm thử tích hợp toàn diện Layer 2, Layer 4 và Main Coordinator mới.
-    - Xác minh chi tiết 4 kịch bản logic cốt lõi:
-        1. Whitelist Bypass: IP tin cậy (8.8.8.8, wikipedia.org) đi qua mà không bị phân tích.
-        2. Cold Start Protection: IP mới kết nối có < 20 gói tin -> Bỏ qua AI suy luận, chỉ hiển thị trạng thái thu thập.
+    - Script này tự động hóa kiểm thử tích hợp toàn diện kiến trúc Evidence-based mới.
+    - Xác minh chi tiết 5 kịch bản logic cốt lõi:
+        1. Whitelist Bypass: IP tin cậy đi qua mà không bị phân tích.
+        2. Cold Start Protection: IP mới có ít hơn 20 kết nối -> Bỏ qua AI suy luận, chỉ thu thập.
         3. Safe Normal IP: IP gửi traffic ngẫu nhiên -> Chuỗi ký tự hỗn loạn -> AI đánh giá Safe.
-        4. Malicious C2 Beaconing: IP gửi traffic đều đặn chu kỳ -> Chuỗi ký tự tuần hoàn lặp -> AI đánh giá Malicious -> BLOCK ngay lập tức.
+        4. LSTM Critical Phủ quyết (Critical Bypass): IP lặp Beaconing với xác suất 0.96 (>= 0.85) -> Block lập tức do luật Phủ quyết.
+        5. Consensus Đồng thuận (Consensus Rule): IP quét cổng (0.7 điểm) kết hợp với AI phát hiện rủi ro (0.80 điểm) 
+           -> Tổng điểm = 1.5 >= 1.5 -> Block lập tức do luật Đồng thuận cộng dồn.
 """
 
 import os
@@ -23,8 +25,13 @@ from datetime import datetime
 # Đảm bảo import được các module từ workspace
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import Gateway và các màu sắc từ main_vpn_ids
+# Import Gateway, Colors và các thành phần
 from main_vpn_ids import AIVPN_Gateway, Colors
+
+# Import động Evidence do tên thư mục 4_risk_manager bắt đầu bằng số
+import importlib
+evidence_manager = importlib.import_module("4_risk_manager.evidence_manager")
+Evidence = evidence_manager.Evidence
 
 def simulate_log(log_path: str, ts: float, src_ip: str, dst_ip: str, dst_port: int, duration: float, orig_bytes: int, query: str = None):
     """Ghi một dòng log dạng JSON Zeek conn.log để Gateway xử lý."""
@@ -50,7 +57,7 @@ def simulate_log(log_path: str, ts: float, src_ip: str, dst_ip: str, dst_port: i
 
 def run_test():
     print("=" * 80)
-    print(f" {Colors.CYAN}{Colors.BRIGHT}BẮT ĐẦU KIỂM THỬ TÍCH HỢP TỰ ĐỘNG V2 - LSTM DEEP LEARNING SYSTEM{Colors.RESET} ")
+    print(f" {Colors.CYAN}{Colors.BRIGHT}BẮT ĐẦU KIỂM THỬ TÍCH HỢP V2 - KIẾN TRÚC DỰA TRÊN BẰNG CHỨNG{Colors.RESET} ")
     print("=" * 80)
 
     # Khởi tạo thư mục và file log kiểm thử sạch
@@ -79,9 +86,10 @@ def run_test():
     now = time.time()
     success_flags = {
         "whitelist_bypass": False,
-        "cold_start_safe": True,  # Giả định ban đầu đúng, sẽ set False nếu crash hoặc suy luận nhầm
+        "cold_start_safe": True,
         "normal_traffic_safe": False,
-        "beaconing_blocked": False
+        "critical_bypass_blocked": False,
+        "consensus_blocked": False
     }
 
     # ==================================================================================
@@ -112,9 +120,8 @@ def run_test():
     
     # Gửi 10 kết nối (ít hơn 20)
     for i in range(10):
-        # Các kết nối đều đặn để xem nếu không có Cold Start thì có bị suy luận/block nhầm không
-        simulate_log(log_path, now + 1.0 + (i * 2.5), cold_ip, "203.0.113.10", 443, 0.5, 500)
-        time.sleep(0.1)
+        simulate_log(log_path, now + 1.0 + (i * 2.5), cold_ip, "203.0.113.10", 80, 0.5, 500)
+        time.sleep(0.05)
     
     time.sleep(1.5)
     
@@ -126,11 +133,13 @@ def run_test():
         print(f"{Colors.RED}[✗] Test 2 THẤT BẠI: Độ dài buffer bị sai lệch ({current_buf_len}/20).{Colors.RESET}")
         success_flags["cold_start_safe"] = False
 
-    if gateway.blocker.block_ip(cold_ip):
-        # Gỡ chặn mô phỏng để tiếp tục test
-        gateway.blocker.active_blocks.discard(cold_ip)
+    # Dọn dẹp an toàn nếu bị chặn nhầm trước đó
+    if gateway.evidence_manager.blocker.block_ip(cold_ip):
+        gateway.evidence_manager.blocker.active_blocks.discard(cold_ip)
         if cold_ip in gateway.scorer.blocked_ips:
             gateway.scorer.blocked_ips[cold_ip] = False
+        if cold_ip in gateway.evidence_manager.profiles:
+            gateway.evidence_manager.profiles[cold_ip]["blocked"] = False
 
     # ==================================================================================
     # KỊCH BẢN 3: Hành vi người dùng sạch (Safe Normal IP)
@@ -142,43 +151,95 @@ def run_test():
     bytes_sent = [200, 15000, 5000, 800, 32000, 4000, 100, 12000, 9500, 20000]
     intervals = [1.5, 40.0, 15.0, 5.0, 60.0, 3.5, 1.2, 50.0, 8.0, 45.0]
     
-    current_ts = now + 1.0 + (9 * 2.5) # Timestamp của kết nối thứ 10 trước đó
+    current_ts = now + 1.0 + (9 * 2.5)
     
     for i in range(10):
         current_ts += intervals[i]
-        simulate_log(log_path, current_ts, cold_ip, "203.0.113.10", 443, durations[i], bytes_sent[i])
-        time.sleep(0.1)
+        # Sử dụng port cố định 80 để không kích hoạt ScanDetector
+        simulate_log(log_path, current_ts, cold_ip, "203.0.113.10", 80, durations[i], bytes_sent[i])
+        time.sleep(0.05)
         
     time.sleep(2.0)
     
     # Verify xem IP sạch có bị block hay không
-    is_blocked = gateway.blocker.active_blocks
+    is_blocked = gateway.evidence_manager.blocker.active_blocks
     if cold_ip not in is_blocked:
         print(f"{Colors.GREEN}[✓] Test 3 ĐẠT: IP người dùng sạch nạp đủ 20 ký tự trượt, AI đánh giá SAFE, không chặn!{Colors.RESET}")
         success_flags["normal_traffic_safe"] = True
     else:
-        print(f"{Colors.RED}[✗] Test 3 THẤT BẠI: IP người dùng sạch bị AI đánh giá nhầm là nguy hại và BLOCK!{Colors.RESET}")
+        print(f"{Colors.RED}[✗] Test 3 THẤT BẠI: IP người dùng sạch bị Bồi thẩm đoàn kết án và BLOCK nhầm!{Colors.RESET}")
 
     # ==================================================================================
-    # KỊCH BẢN 4: Tấn công C2 Beaconing (LSTM Block)
+    # KỊCH BẢN 4: LSTM Phủ quyết khẩn cấp (Critical Bypass - AI xác suất 0.96)
     # ==================================================================================
-    print(f"\n{Colors.CYAN}--- [TEST 4] Kiểm tra Tấn công C2 Beaconing (IP 192.168.10.12 lặp tuần hoàn) ---{Colors.RESET}")
+    print(f"\n{Colors.CYAN}--- [TEST 4] Kiểm tra Luật Phủ Quyết Khẩn Cấp (AI LSTM = 0.96 >= 0.85) ---{Colors.RESET}")
     beacon_ip = "192.168.10.12"
-    beacon_ts = now + 2000.0  # Timestamp mới hoàn toàn
+    beacon_ts = now + 2000.0
     
     # Gửi 20 kết nối đều đặn tăm tắp (Duration=0.5s, Bytes=500B, Interval=1.5s) -> Mã hóa thành 'A'
     for i in range(20):
-        simulate_log(log_path, beacon_ts + (i * 1.5), beacon_ip, "203.0.113.66", 443, 0.5, 500)
-        time.sleep(0.1)
+        # Port cố định để tránh kích hoạt Scan
+        simulate_log(log_path, beacon_ts + (i * 1.5), beacon_ip, "203.0.113.66", 80, 0.5, 500)
+        time.sleep(0.05)
         
-    time.sleep(2.0)
+    time.sleep(2.5)
     
-    # Kiểm tra xem beacon_ip đã bị đưa vào active_blocks của tường lửa hay chưa
-    if beacon_ip in gateway.blocker.active_blocks:
-        print(f"{Colors.GREEN}[✓] Test 4 ĐẠT: Phát hiện C2 Beaconing thành công, IP {beacon_ip} đã bị BLOCK lập tức bởi AI!{Colors.RESET}")
-        success_flags["beaconing_blocked"] = True
+    # Kiểm tra xem beacon_ip đã bị block thông qua Luật phủ quyết khẩn cấp hay chưa
+    if beacon_ip in gateway.evidence_manager.blocker.active_blocks:
+        profile = gateway.evidence_manager.profiles.get(beacon_ip, {})
+        verdict = profile.get("verdict", "")
+        if "Critical" in verdict:
+            print(f"{Colors.GREEN}[✓] Test 4 ĐẠT: Phát hiện khẩn cấp thành công! Tội danh: '{verdict}'. IP {beacon_ip} bị BLOCK do Luật Phủ Quyết!{Colors.RESET}")
+            success_flags["critical_bypass_blocked"] = True
+        else:
+            print(f"{Colors.RED}[✗] Test 4 THẤT BẠI: Đã block IP nhưng không định danh đúng theo Luật Phủ Quyết! Verdict: {verdict}{Colors.RESET}")
     else:
-        print(f"{Colors.RED}[✗] Test 4 THẤT BẠI: IP Tấn công C2 Beaconing không bị AI phát hiện hoặc bỏ lọt!{Colors.RESET}")
+        print(f"{Colors.RED}[✗] Test 4 THẤT BẠI: IP lặp Beaconing mạnh không bị block khẩn cấp!{Colors.RESET}")
+
+    # ==================================================================================
+    # KỊCH BẢN 5: Luật Đồng Thuận Cộng Dồn (Port Scan + LSTM)
+    # ==================================================================================
+    print(f"\n{Colors.CYAN}--- [TEST 5] Kiểm tra Luật Đồng Thuận Cộng Dồn (Scan 0.7 + LSTM 0.8) ---{Colors.RESET}")
+    compromised_ip = "192.168.10.15"
+    comp_ts = now + 4000.0
+    
+    # Bước A: IP gửi traffic quét cổng (11 kết nối đến 11 port đích khác nhau trong 2 giây)
+    # ScanDetector kích hoạt (confidence = 0.7). Tổng điểm = 0.7 < 1.5 -> Chưa block!
+    for i in range(11):
+        simulate_log(log_path, comp_ts + (i * 0.1), compromised_ip, "203.0.113.88", 1000 + i, 0.1, 100)
+        time.sleep(0.02)
+        
+    time.sleep(1.0)
+    
+    is_blocked_step_a = compromised_ip in gateway.evidence_manager.blocker.active_blocks
+    current_score_step_a = gateway.evidence_manager.profiles.get(compromised_ip, {}).get("total_score", 0.0)
+    
+    print(f"{Colors.DIM}[TEST 5A] Sau khi quét cổng: Tổng điểm tích lũy = {current_score_step_a}, Blocked? {is_blocked_step_a}{Colors.RESET}")
+    
+    # Bước B: IP gửi thêm chuỗi kết nối Beaconing trung bình/mạnh
+    # Giả lập gửi trực tiếp một bằng chứng LSTM (Confidence = 0.8) về EvidenceManager
+    # Tổng điểm = 0.7 + 0.8 = 1.5 -> Đạt ngưỡng đồng thuận -> Block!
+    lstm_ev = Evidence(
+        ip=compromised_ip,
+        module_name="LSTM",
+        confidence=0.8,
+        attack_type="Suspicious_Rhythm",
+        timestamp=comp_ts + 2.0
+    )
+    gateway.evidence_manager.add_evidence(lstm_ev)
+    time.sleep(1.0)
+    
+    is_blocked_step_b = compromised_ip in gateway.evidence_manager.blocker.active_blocks
+    current_score_step_b = gateway.evidence_manager.profiles.get(compromised_ip, {}).get("total_score", 0.0)
+    verdict_step_b = gateway.evidence_manager.profiles.get(compromised_ip, {}).get("verdict", "")
+    
+    print(f"{Colors.DIM}[TEST 5B] Sau khi nhận thêm bằng chứng AI: Tổng điểm = {current_score_step_b}, Blocked? {is_blocked_step_b}{Colors.RESET}")
+    
+    if not is_blocked_step_a and is_blocked_step_b and "Botnet" in verdict_step_b:
+        print(f"{Colors.GREEN}[✓] Test 5 ĐẠT: Đồng thuận cộng dồn thành công! Tội danh: '{verdict_step_b}'. IP {compromised_ip} bị BLOCK do Luật Đồng Thuận!{Colors.RESET}")
+        success_flags["consensus_blocked"] = True
+    else:
+        print(f"{Colors.RED}[✗] Test 5 THẤT BẠI: Sai logic đồng thuận! Block sớm? {is_blocked_step_a}, Block muộn? {is_blocked_step_b}, Verdict: {verdict_step_b}{Colors.RESET}")
 
     # Dừng hệ thống an toàn
     print("")
