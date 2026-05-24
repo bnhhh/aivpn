@@ -249,6 +249,16 @@ class AIVPN_Gateway:
                             pass
                 
                 # 3. Đẩy log kết nối vào Log Discretizer để mã hóa ký tự và lưu buffer trượt
+                # Bỏ qua cổng DNS (53) để tránh làm sai lệch chuỗi nhịp điệu phân tích của LSTM C2 Scorer
+                resp_port = parsed_log.get("id.resp_p")
+                try:
+                    resp_port = int(resp_port) if resp_port is not None else 0
+                except (ValueError, TypeError):
+                    resp_port = 0
+                
+                if resp_port == 53:
+                    continue
+
                 char, window, is_ready, current_len = self.discretizer.process_log(parsed_log)
                 if not char:
                     continue
