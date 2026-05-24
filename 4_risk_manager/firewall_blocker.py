@@ -75,8 +75,10 @@ class FirewallBlocker:
         if self.is_linux and not self.dry_run:
             try:
                 # Lệnh chặn IP đi qua VPN Gateway (Chặn Routing và Input)
-                cmd_input = ["iptables", "-A", "INPUT", "-s", ip_address, "-j", "DROP"]
-                cmd_forward = ["iptables", "-A", "FORWARD", "-s", ip_address, "-j", "DROP"]
+                # SỬ DỤNG -I (Insert) ở đầu chuỗi (Vị trí 1) thay vì -A (Append)
+                # Điều này giúp luật của AIVPN đè lên mọi luật của UFW (nếu có)
+                cmd_input = ["iptables", "-I", "INPUT", "1", "-s", ip_address, "-j", "DROP"]
+                cmd_forward = ["iptables", "-I", "FORWARD", "1", "-s", ip_address, "-j", "DROP"]
                 
                 print(
                     f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
@@ -122,7 +124,7 @@ class FirewallBlocker:
             f"{Colors.RED}{Colors.BRIGHT}[FIREWALL]{Colors.RESET} "
             f"{Colors.BG_RED}{Colors.WHITE}{Colors.BRIGHT}[MÔ PHỎNG CHẶN]{Colors.RESET} "
             f"Đã chặn lưu lượng truy cập từ IP: {Colors.BRIGHT}{Colors.YELLOW}{ip_address}{Colors.RESET} "
-            f"-> Lệnh áp dụng: {Colors.DIM}iptables -A INPUT -s {ip_address} -j DROP{Colors.RESET}"
+            f"-> Lệnh áp dụng: {Colors.DIM}iptables -I INPUT 1 -s {ip_address} -j DROP{Colors.RESET}"
         )
 
     def unblock_ip(self, ip_address: str) -> bool:
