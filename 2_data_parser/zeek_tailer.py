@@ -187,6 +187,7 @@ class ZeekTailer:
     """
     def __init__(self, log_path: str):
         self.log_path = log_path
+        self.fields = []
         # Regex dự phòng để phân tích cú pháp text thông thường nếu không phải JSON
         self.regex_conn = re.compile(
             r"(?P<timestamp>[\d\.\-]+)\s+(?P<uid>\w+)\s+(?P<src_ip>[\d\.\:a-fA-F]+)\s+(?P<src_port>\d+)\s+"
@@ -250,8 +251,16 @@ class ZeekTailer:
 
     def _parse_line(self, line: str) -> Optional[Dict[str, Any]]:
         """Phân tích cú pháp dòng log dạng JSON hoặc Text sang Dictionary."""
-        if not line or line.startswith("#"):
-            return None # Bỏ qua các dòng trống hoặc dòng comment của Zeek TSV
+        if not line:
+            return None
+
+        # 0. Đọc tiêu đề cột động từ Zeek TSV
+        if line.startswith("#fields"):
+            self.fields = line.strip().split("\t")[1:]
+            return None
+            
+        if line.startswith("#"):
+            return None # Bỏ qua các dòng comment khác của Zeek TSV
             
         # 1. Thử parse dạng JSON
         try:
@@ -264,14 +273,53 @@ class ZeekTailer:
                 "id.resp_h": data.get("id.resp_h"),
                 "id.resp_p": data.get("id.resp_p"),
                 "proto": str(data.get("proto")).upper(),
-                "query": data.get("query"),  # Kèm theo nếu có (dành cho DNS tunneling)
+                "query": data.get("query") if data.get("query") not in (None, "-", "(empty)") else None,
                 "duration": data.get("duration"),
                 "orig_bytes": data.get("orig_bytes")
             }
         except json.JSONDecodeError:
-            pass  # Nếu không phải JSON, tiếp tục thử dùng Regex cho TSV
+            pass  # Nếu không phải JSON, tiếp tục thử dùng TSV
 
-        # 2. Thử parse dạng Text/TSV bằng Regex
+        # 2. Thử parse dạng TSV bằng việc split theo tab nếu có tiêu đề động
+        if self.fields:
+            parts = line.strip().split("\t")
+            if len(parts) == len(self.fields):
+                data = dict(zip(self.fields, parts))
+                
+                # Trích xuất và chuẩn hóa
+                query_val = data.get("query")
+                if query_val in (None, "-", "(empty)", ""):
+                    query_val = None
+                    
+                # Chuyển đổi kiểu dữ liệu an toàn
+                try:
+                    ts_val = float(data.get("ts", 0.0))
+                except (ValueError, TypeError):
+                    ts_val = time.time()
+
+                try:
+                    orig_port = int(data.get("id.orig_p", 0))
+                except (ValueError, TypeError):
+                    orig_port = 0
+
+                try:
+                    resp_port = int(data.get("id.resp_p", 0))
+                except (ValueError, TypeError):
+                    resp_port = 0
+                    
+                return {
+                    "timestamp": ts_val,
+                    "id.orig_h": data.get("id.orig_h"),
+                    "id.orig_p": orig_port,
+                    "id.resp_h": data.get("id.resp_h"),
+                    "id.resp_p": resp_port,
+                    "proto": str(data.get("proto", "TCP")).upper(),
+                    "query": query_val,
+                    "duration": data.get("duration"),
+                    "orig_bytes": data.get("orig_bytes")
+                }
+
+        # 3. Thử parse dạng Text/TSV bằng Regex (Dự phòng cho chuỗi TSV tĩnh)
         match = self.regex_conn.search(line)
         if match:
             gd = match.groupdict()
@@ -283,7 +331,9 @@ class ZeekTailer:
                     "id.resp_h": gd["dst_ip"],
                     "id.resp_p": int(gd["dst_port"]),
                     "proto": gd["proto"].upper(),
-                    "query": None
+                    "query": None,
+                    "duration": 0.0,
+                    "orig_bytes": 0
                 }
             except ValueError:
                 return None
