@@ -259,6 +259,14 @@ class AIVPN_Gateway:
                 if resp_port == 53:
                     continue
 
+                # Bỏ qua nếu IP nguồn này đang thực hiện quét nhiều cổng (Port Scan) trong cửa sổ 10s
+                # nhằm loại bỏ lưu lượng quét cổng tốc độ cao gây nhiễu cho chuỗi trượt nhịp điệu của LSTM
+                history_conns = self.scan_detector.history.get(ip_src, [])
+                if history_conns:
+                    unique_ports = {conn[1] for conn in history_conns}
+                    if len(unique_ports) > 2:
+                        continue
+
                 char, window, is_ready, current_len = self.discretizer.process_log(parsed_log)
                 if not char:
                     continue
