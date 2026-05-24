@@ -154,6 +154,8 @@ class EvidenceManager:
                 modules = {ev.module_name for ev in profile["evidences"]}
                 if "LSTM" in modules and "ScanDetector" in modules:
                     verdict = "Botnet/C2 (LSTM Beaconing + Port Scan)"
+                elif "LSTM" in modules and "DNS_Detector" in modules:
+                    verdict = "Advanced Stealth APT (DNS + Jitter Beaconing)"
                 elif "ScanDetector" in modules:
                     verdict = "Nmap Port Scan (High Volume)"
                 elif "LSTM" in modules:

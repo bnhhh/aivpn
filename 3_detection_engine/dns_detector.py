@@ -128,7 +128,7 @@ class DNSDetector:
             
         # --- LUẬT 1: Phát hiện DGA (Shannon Entropy cao) ---
         entropy = calculate_entropy(domain)
-        if entropy > self.entropy_threshold:
+        if entropy >= self.entropy_threshold:
             print(
                 f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
                 f"{Colors.YELLOW}{Colors.BRIGHT}[DNS_DETECT]{Colors.RESET} "
@@ -139,6 +139,19 @@ class DNSDetector:
                 "module_name": "DNS_Detector",
                 "confidence": 0.85, # Đạt ngưỡng phủ quyết khẩn cấp (Critical Bypass)
                 "attack_type": "DGA_Malware",
+                "timestamp": ts
+            }
+        elif 3.6 <= entropy < self.entropy_threshold:
+            print(
+                f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
+                f"{Colors.YELLOW}{Colors.BRIGHT}[DNS_DETECT]{Colors.RESET} "
+                f"IP {Colors.GREEN}{ip_src}{Colors.RESET} truy vấn tên miền mờ ám (Entropy = {Colors.BRIGHT}{entropy:.4f}{Colors.RESET}): '{Colors.CYAN}{domain}{Colors.RESET}'!"
+            )
+            return {
+                "ip": ip_src,
+                "module_name": "DNS_Detector",
+                "confidence": 0.70, # Dưới ngưỡng phủ quyết, chờ Đồng Thuận
+                "attack_type": "Suspicious_Domain",
                 "timestamp": ts
             }
 

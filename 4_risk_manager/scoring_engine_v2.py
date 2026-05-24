@@ -233,9 +233,9 @@ class ScoringEngine:
         if transitions >= 14 and len(freq) <= 3:
             return 0.92
 
-        # 3. Kịch bản lặp đơn điệu trung bình
-        if max_freq >= 12:  # 60%
-            return 0.75
+        # 3. Kịch bản lặp đơn điệu trung bình (Jitter C2 Beaconing)
+        if max_freq >= 10:  # 50%
+            return 0.82
 
         # 4. Chuỗi sạch ngẫu nhiên (Lướt web tự nhiên)
         # Số lượng ký tự độc nhất cao, không có ký tự nào chiếm ưu thế tuyệt đối
