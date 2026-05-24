@@ -1,192 +1,218 @@
-# 🛡️ Mini AI VPN Gateway LSTM
+# 🛡️ Mini AI VPN Gateway (AIVPN)
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
   <img src="https://img.shields.io/badge/TensorFlow--CPU-2.15-orange?style=for-the-badge&logo=tensorflow&logoColor=white" alt="TensorFlow CPU" />
   <img src="https://img.shields.io/badge/Zeek-IDS-green?style=for-the-badge&logo=security&logoColor=white" alt="Zeek IDS" />
   <img src="https://img.shields.io/badge/WireGuard-VPN-purple?style=for-the-badge&logo=wireguard&logoColor=white" alt="WireGuard VPN" />
-  <img src="https://img.shields.io/badge/OS-Ubuntu%2024.04%2F25.04-red?style=for-the-badge&logo=ubuntu&logoColor=white" alt="OS Ubuntu" />
+  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License MIT" />
 </p>
+
+---
+
+## 📝 Mục lục (Table of Contents)
+1. [Giới thiệu tổng quan (Overview)](#-1-gioi-thieu-tong-quan-overview)
+2. [Kiến trúc hệ thống (Core Architecture)](#-2-kien-truc-he-thong-core-architecture)
+   - [Kiến trúc Bằng chứng (Evidence-based)](#a-kien-truc-bang-chung-evidence-based)
+   - [Cơ chế Bất đồng bộ (Producer-Consumer Queue)](#b-co-che-bat-dong-bo-producer-consumer-queue)
+   - [Sơ đồ Luồng xử lý (Pipeline Diagram)](#c-so-do-luong-xu-ly-pipeline-diagram)
+3. [Bộ ba "Thợ săn" lớp 3 (Detection Modules)](#-3-bo-ba-tho-san-lop-3-detection-modules)
+   - [AI LSTM Core](#i-ai-lstm-core-dynamic-rhythm-analysis)
+   - [Static Scan Detector](#ii-static-scan-detector-port-scan-hunter)
+   - [DNS Detector](#iii-dns-detector-dga--tunneling-hunter)
+4. [Lớp Bồi thẩm đoàn & Luật kép lớp 4 (Evidence Manager)](#-4-lop-boi-tham-doan--luat-kep-lop-4-evidence-manager)
+   - [Lọc rác bằng chứng (Time-To-Live)](#a-loc-rac-bang-chung-time-to-live-ttl)
+   - [Hệ thống Luật kép (Dual-Rule System)](#b-he-thong-luat-kep-dual-rule-system)
+5. [Hướng dẫn Cài đặt & Sử dụng (Quick Start)](#-5-huong-dan-cai-dat--su-dung-quick-start)
+   - [Yêu cầu hệ thống](#a-yeu-cau-he-thong)
+   - [Cài đặt Môi trường](#b-cai-dat-moi-truong)
+   - [Khởi chạy Gateway](#c-khoi-chay-gateway)
+6. [Kịch bản Kiểm thử Tích hợp (Testing Scenarios)](#-6-kich-ban-kiem-thu-tich-hop-testing-scenarios)
 
 ---
 
 ## 📖 1. Giới thiệu tổng quan (Overview)
 
-**Mini AI VPN Gateway LSTM** là một hệ thống Phát hiện và Ngăn chặn Xâm nhập (IPS) thời gian thực thế hệ mới, được tích hợp trực tiếp tại Gateway của mạng riêng ảo WireGuard. 
+**Mini AI VPN Gateway (AIVPN)** là một giải pháp Phát hiện và Ngăn chặn Xâm nhập (IPS/IDS) biên thời gian thực siêu nhẹ, được thiết kế chuyên biệt để tích hợp trực tiếp vào các cổng ngõ VPN (WireGuard Gateway) hoặc thiết bị phần cứng nhúng (Edge Devices) chạy hệ điều hành Ubuntu Linux. 
 
-Khác biệt hoàn toàn với các giải pháp IPS truyền thống dựa trên luật tĩnh (Rule-based) vốn dễ bị qua mặt và tốn công bảo trì, hệ thống này đã được nâng cấp toàn diện sang kiến trúc **Trí tuệ Nhân tạo (Deep Learning)**. Bằng việc sử dụng mạng nơ-ron hồi quy **LSTM (Long Short-Term Memory)**, hệ thống có khả năng phân tích sâu chuỗi hành vi mạng theo thời gian thực để phát hiện các kỹ thuật tấn công tinh vi như **Port Scan**, **C2 Beaconing (mã độc giao tiếp định kỳ)** và **DNS Tunneling**.
-
-Đặc biệt, hệ thống được thiết kế theo triết lý tối giản và siêu nhẹ để triển khai trực tiếp trên các thiết bị Edge hoặc Máy ảo (Ubuntu VM), sử dụng động cơ suy luận tối ưu **tensorflow-cpu** với bộ nhớ RAM cực kỳ tiết kiệm.
+Kế thừa và tối ưu hóa sâu sắc triết lý phân tích hành vi từ hệ thống danh tiếng **Stratosphere Slips (Đại học Kỹ thuật Séc - CTU)**, dự án này đã loại bỏ hoàn toàn các cấu trúc chấm điểm rule-based cồng kềnh và cơ sở dữ liệu Redis nặng nề. Thay vào đó, AIVPN sử dụng mạng nơ-ron hồi quy **Deep Learning LSTM** kết hợp với bộ thợ săn tĩnh phân tích lưu lượng, đưa ra khả năng phát hiện chủ động các mối đe dọa như **C2 Beaconing**, **Port Scan** và **DNS Tunneling** với mức tiêu thụ tài nguyên cực kỳ tối giản (chỉ tốn **~15MB RAM**).
 
 ---
 
-## 🛠️ 2. Pipeline Hoạt động (Operation Pipeline)
+## 🏗️ 2. Kiến trúc hệ thống (Core Architecture)
 
-Sơ đồ ASCII dưới đây mô tả chi tiết đường ống xử lý dữ liệu khép kín từ lúc Client gửi gói tin qua VPN cho đến khi AI đưa ra quyết định chặn tường lửa:
+AIVPN được nâng cấp toàn diện lên kiến trúc phân lớp hiện đại để giải quyết triệt để các hạn chế về hiệu năng và độ tin cậy trong môi trường an ninh mạng thực tế.
+
+### A. Kiến trúc Bằng chứng (Evidence-based)
+Hệ thống tuân thủ nghiêm ngặt nguyên lý tách biệt trách nhiệm (Separation of Concerns):
+*   **Lớp Phát hiện (Layer 3 - Hunters):** Bao gồm AI LSTM, Static Scan Detector, và DNS Detector. Các module này hoạt động hoàn toàn độc lập, **chỉ làm nhiệm vụ thu thập và gửi bằng chứng (`Evidence`)** chứa địa chỉ IP, tên module phát hiện, độ tự tin (Confidence), loại tấn công và timestamp. Lớp này tuyệt đối không có quyền chặn iptables hay in cảnh báo block.
+*   **Lớp Quyết định (Layer 4 - Jury):** Được quản lý tập trung bởi **Bồi thẩm đoàn (`EvidenceManager`)**. Bồi thẩm đoàn sẽ tích lũy bằng chứng, định danh tội danh mã độc dựa trên các dấu vết phối hợp và trực tiếp thực thi tường lửa Linux thông qua `FirewallBlocker`.
+
+### B. Cơ chế Bất đồng bộ (Producer-Consumer Queue)
+Để ngăn chặn nguy cơ nghẽn cổ chai I/O khi lưu lượng log Zeek (`conn.log`) tăng đột biến, hệ thống triển khai mô hình đa luồng thông qua một Thread-Safe **`queue.Queue`**:
+*   **Luồng chính (Producer - Reader Thread):** Đọc file log liên tục, thực hiện whitelist check cực nhanh, cập nhật bộ discretizer và chạy quét cổng tĩnh phi blocking, sau đó đóng gói dữ liệu và đẩy vào hàng đợi `log_queue`. Luồng này được giải phóng ngay lập tức ($<1\text{ms}$) để tránh mất mát log.
+*   **Luồng Worker (Consumer - Worker Thread):** Chạy độc lập dưới nền, lấy sự kiện ra khỏi hàng đợi để thực hiện các phép suy luận AI LSTM (Deep Learning) tiêu tốn năng lực CPU và nạp bằng chứng cho Bồi thẩm đoàn.
+
+### C. Sơ đồ Luồng xử lý (Pipeline Diagram)
 
 ```text
-==========================================================================================
-                     MẠNG RIÊNG ẢO WIREGUARD VPN & PIPELINE XỬ LÝ AI IPS
-==========================================================================================
+==================================================================================================
+                        WIREGUARD VPN GATEWAY & PIPELINE XỬ LÝ AI IPS
+==================================================================================================
 
-   [ VPN Client ]          [ Bình thường / Whitelist ]   ----------> Cho phép truy cập
-         │                                                            ▲
-         ▼ (wg0 Interface)                                           │
-  ┌──────────────┐         ┌─────────────────────────┐               │
-  │  Zeek Engine │ ───►   │ Whitelist Parser        │ ──── (Bypass) ──┘
-  │  (conn.log)  │         │ (whitelist.conf)        │
-  └──────────────┘         └────────────┬────────────┘
-                                        │ (Nếu không nằm trong Whitelist)
-                                        ▼
-                           ┌─────────────────────────┐
-                           │ Log Discretizer         │ ◄─── rolling FIFO deque
-                           │ (Mã hóa chuỗi 20 ký tự)  │      (collections.deque)
-                           └────────────┬────────────┘
-                                        │
-                                        ▼
-                           ┌─────────────────────────┐
-                           │ Cold Start Checker      │ ─── (Chuỗi < 20 ký tự) ──► Graceful Wait
-                           └────────────┬────────────┘
-                                        │ (Chuỗi đã nạp đủ 20 ký tự)
-                                        ▼
-                           ┌─────────────────────────┐
-                           │ AI Scoring Engine V2    │
-                           │ (lstm_model.tflite)     │ ◄─── tensorflow-cpu (Edge)
-                           └────────────┬────────────┘
-                                        │
-                         ┌──────────────┴──────────────┐
-                         ▼ (Risk Score < 80.0%)        ▼ (Risk Score >= 80.0%)
-                    [ SAFE TRAFFIC ]            [ MALICIOUS DETECTED ]
-                         │                             │
-                         ▼                             ▼
-                 Cho phép đi qua               ┌───────────────┐
-                                               │ iptables DROP │ (Tống xuất khỏi VPN)
-                                               └───────────────┘
-==========================================================================================
+   [ VPN Clients ] ───( wg0 Interface )───► [ Zeek Log Engine ] ───► [ conn.log (Log Stream) ]
+                                                                             │
+                                                                             ▼
+                                                                ┌─────────────────────────┐
+                                                                │ Whitelist Parser        │ ── (Bypass) ─► [ SAFE ]
+                                                                └────────────┬────────────┘
+                                                                             │ (Nếu không Whitelist)
+                                                                             ▼
+                                                             +───────────────────────────────+
+                                                             |   Producer Thread (Reader)    |
+                                                             +───────────────────────────────+
+                                                                             │
+                                           ┌─────────────────────────────────┼────────────────────────────────┐
+                                           ▼                                 ▼                                ▼
+                                ┌─────────────────────┐           ┌─────────────────────┐          ┌─────────────────────┐
+                                │ Static Scan Hunter  │           │ AI Sequence Encoder │          │     DNS Hunter      │
+                                │  (Quét cổng 10s)    │           │ (Sliding Window 20) │          │  (Entropy & Subdom) │
+                                └──────────┬──────────┘           └──────────┬──────────┘          └──────────┬──────────┘
+                                           │ (Có bằng chứng)                 │ (Chuỗi trượt đủ 20 ký tự)  │ (Có bằng chứng)
+                                           ▼                                 ▼                            ▼
+                         =================================== [ Thread-Safe queue.Queue ] ===================================
+                                                                             │
+                                                                             ▼
+                                                             +───────────────────────────────+
+                                                             |   Consumer Thread (Worker)    |
+                                                             +───────────────────────────────+
+                                                                             │
+                                                               ┌─────────────┴─────────────┐
+                                                               ▼                           ▼
+                                                    [ Bằng chứng Hunter ]        [ Chạy suy luận LSTM AI ]
+                                                               │                           │ (Xác suất >= 0.8)
+                                                               ▼                           ▼
+                                                    +──────────────────────────────────────────────+
+                                                    |  Bồi thẩm đoàn (EvidenceManager - Layer 4)    |
+                                                    +──────────────────────────────────────────────+
+                                                                             │
+                                                            ┌────────────────┴────────────────┐
+                                                            ▼ (Thỏa mãn Luật kép)             ▼ (Không đủ điểm)
+                                                    [ JURY VERDICT: KẾT ÁN ]                 [ TIẾP TỤC GIÁM SÁT ]
+                                                            │
+                                                            ▼
+                                                    ┌───────────────────────┐
+                                                    │ FirewallBlocker (L4)  │ ──► [ iptables DROP ]
+                                                    └───────────────────────┘
+==================================================================================================
 ```
 
 ---
 
-## ✨ 3. Tính năng nổi bật (Features)
+## 🕵️ 3. Bộ ba "Thợ săn" lớp 3 (Detection Modules)
 
-*   **⚡ Loại bỏ hoàn toàn luật tĩnh (Zero Hardcoded Rules):** Không còn các luật so khớp tĩnh hay hệ thống cộng trừ điểm thủ công dễ bị bypass. Hệ thống trao quyền quyết định hoàn toàn cho mạng Deep Learning LSTM tự động nhận diện mẫu hành vi độc hại.
-*   **🧠 Mạng nơ-ron hồi quy LSTM nâng cấp:** Khả năng ghi nhớ và phân tích mối liên hệ thời gian giữa các kết nối liên tiếp, cực kỳ nhạy bén với các hành vi C2 Beaconing phát tín hiệu ngắt quãng định kỳ.
-*   **🔄 Cơ chế Sliding Window FIFO (collections.deque):** Bộ đệm lưu trữ chuỗi ký tự của mỗi IP sử dụng cửa sổ trượt trơn tru có độ dài tối đa 20 ký tự. Khi kết nối thứ 21 tới, ký tự cũ nhất sẽ tự động được giải phóng để nạp ký tự mới, đảm bảo AI luôn luôn giám sát 20 hành vi gần nhất mà không làm phình to bộ nhớ.
-*   **🛡️ Khởi động nguội an toàn (Cold Start / Graceful Wait):** Ngăn ngừa tuyệt đối lỗi crash không khớp chiều dữ liệu (dimension mismatch). Khi IP mới kết nối và có ít hơn 20 kết nối, hệ thống sẽ chỉ ghi nhận chuỗi tích lũy mà bỏ qua suy luận AI cho đến khi đủ điều kiện.
-*   **🛡️ Tự động chặn chủ động (Active Response):** Khi xác suất độc hại vượt ngưỡng **80.0%** (Threat Threshold), hệ thống ngay lập tức gọi lệnh hệ thống áp cấu trúc chặn cứng IP nguồn qua `iptables DROP` để ngăn chặn rò rỉ dữ liệu hoặc leo thang đặc quyền.
-*   **📈 Tối ưu hóa tuyệt đối cho Edge VM:** Bằng việc nạp file mô hình siêu nhẹ dạng TFLite (`lstm_model.tflite`) và chạy trên `tensorflow-cpu`, hệ thống chỉ tốn **~15MB RAM** vận hành, giảm 97% tài nguyên so với việc nạp đầy đủ framework TensorFlow truyền thống.
+Lớp 3 tích hợp ba công cụ phát hiện với các thuật toán phân tích đa chiều:
+
+### I. AI LSTM Core (Dynamic Rhythm Analysis)
+*   **Cơ chế:** Gom nhóm kết nối theo từng IP nguồn và mã hóa các tham số (Duration, Size, Interval) thành chuỗi các ký tự chữ cái hành vi đại diện (*Behavioral Letters*).
+*   **FIFO Sliding Window:** Sử dụng bộ đệm trượt rolling liên tục `collections.deque(maxlen=20)`. Khi kết nối thứ 21 tới, ký tự đầu tiên tự động bị đẩy ra để nạp ký tự mới, đảm bảo AI luôn nhìn thấy bức tranh toàn cảnh 20 kết nối gần nhất.
+*   **Cold Start Protection:** Ràng buộc bảo vệ "Graceful Wait". Hệ thống tuyệt đối bỏ qua suy luận AI cho các IP mới kết nối có ít hơn 20 kết nối để tránh lỗi crash dimension.
+*   **Mô hình suy luận:** Tải file `lstm_model.tflite` qua thư viện tối giản `tensorflow-cpu`. Khi xác suất nguy hại $\ge 0.80$, sinh bằng chứng `Evidence` với `confidence=prob`, `attack_type="Suspicious_Rhythm"`.
+
+### II. Static Scan Detector (Port Scan Hunter)
+*   **Cơ chế:** Đếm số lượng cổng đích (`id.resp_p`) duy nhất mà một IP nguồn (`id.orig_h`) truy cập trong cửa sổ trượt 10 giây.
+*   **Ngưỡng phát hiện:** Nếu số cổng đích duy nhất $> 10$ trong 10 giây $\rightarrow$ Sinh bằng chứng `Evidence` với `confidence=0.7`, `attack_type="High_Connection_Rate"`.
+*   **Cooldown:** Tích hợp bộ đệm Cooldown 10 giây cho mỗi IP để tránh hiện tượng spam dồn dập bằng chứng cho cùng một đợt quét.
+
+### III. DNS Detector (DGA & Tunneling Hunter)
+*   **Phát hiện DGA (Shannon Entropy):** Áp dụng công thức toán học Shannon Entropy tính độ hỗn loạn thông tin của chuỗi tên miền đầy đủ:
+    $$H(X) = - \sum_{i=1}^{n} P(x_i) \log_2 P(x_i)$$
+    Nếu tên miền có $H(X) > 4.2$ (mức độ hỗn loạn rất cao của thuật toán sinh tên miền động của mã độc) $\rightarrow$ Sinh bằng chứng với `confidence=0.85`, `attack_type="DGA_Malware"`.
+*   **Phát hiện DNS Tunneling (Subdomain Length):** Tự động bóc tách subdomain từ FQDN. Nếu độ dài subdomain $> 45$ ký tự (dấu hiệu rò rỉ dữ liệu hoặc mã hóa gói tin qua trường DNS Query) $\rightarrow$ Sinh bằng chứng với `confidence=0.90`, `attack_type="DNS_Tunneling"`.
 
 ---
 
-## 🔬 4. Cảm hứng & So sánh với Stratosphere Slips
+## ⚖️ 4. Lớp Bồi thẩm đoàn & Luật kép lớp 4 (Evidence Manager)
 
-Dự án này kế thừa và phát triển từ kiến trúc cốt lõi của **Stratosphere Linux IPS (Slips)** – một hệ thống phát hiện xâm nhập hành vi mạng mã nguồn mở nổi tiếng do Đại học Kỹ thuật Séc (CTU) phát triển.
+`EvidenceManager` là "bộ não" đưa ra phán quyết cuối cùng dựa trên các hồ sơ bằng chứng thu thập được.
 
-### 🤝 Điểm giống nhau
-- **Triết lý Behavioral Letters:** Kế thừa trọn vẹn ý tưởng gom nhóm các luồng mạng theo từng địa chỉ IP từ log Zeek và mã hóa các thuộc tính (Duration, Size, Interval) thành các ký tự chữ cái đại diện. Chuỗi ký tự này tạo thành một bức tranh toàn cảnh về hành vi kết nối của Client.
+### A. Lọc rác bằng chứng (Time-To-Live - TTL)
+Để tránh việc các cảnh báo riêng lẻ tích lũy vô hạn theo thời gian gây nghẽn bộ nhớ RAM và dẫn đến phán quyết sai lệch, mỗi bằng chứng nạp vào Bồi thẩm đoàn đều được áp **TTL = 5 phút (300 giây)**. Sau 5 phút, bằng chứng hết hiệu lực sẽ tự động bị đào thải ra khỏi profile của IP đó.
 
-### 🚀 Điểm khác biệt (Sự tối ưu hóa)
-
-| Tiêu chí so sánh | 🌐 Stratosphere Slips (Bản gốc) | ⚡ Mini AI VPN Gateway (Dự án này) |
-| :--- | :--- | :--- |
-| **Kiến trúc hệ thống** | Cực kỳ đồ sộ, chạy đa tiến trình phức tạp. Phụ thuộc nặng vào Redis DB để truyền tin. | Tinh giản, khép kín, hoạt động dưới dạng Single-Process bất đồng bộ gọn nhẹ. Không cần Redis. |
-| **Động cơ quyết định** | Tổ hợp nhiều module rule-based, thống kê, chuỗi Markov và học máy cổ điển chạy song song. | **Loại bỏ hoàn toàn luật tĩnh.** Tập trung toàn bộ "hỏa lực" vào một lõi Deep Learning LSTM duy nhất. |
-| **Tiêu hao bộ nhớ (RAM)**| Thường yêu cầu từ **1.5 GB - 3 GB+ RAM**, không phù hợp cho các thiết bị Edge cấu hình thấp. | Cực kỳ tiết kiệm, chỉ tốn **~15 MB RAM** nhờ mô hình LSTM TFLite và engine suy luận tối giản. |
-| **Khả năng tự động chặn** | Hỗ trợ nhiều script mở rộng cấu hình phức tạp. | Gọi lệnh `iptables` trực tiếp hoặc giả lập chặn thông minh cực nhanh (<30ms latency). |
+### B. Hệ thống Luật kép (Dual-Rule System)
+Bồi thẩm đoàn kiểm thử hồ sơ IP qua hai luật chặn khẩn cấp để đảm bảo tính an toàn tuyệt đối:
 
 > [!NOTE]
-> Bằng cách cắt tỉa toàn bộ các module rule-based cồng kềnh của Slips, Mini AI VPN Gateway tập trung giải quyết bài toán cốt lõi: Phân tích chuỗi hành vi bằng Deep Learning với tài nguyên siêu nhẹ, mang lại hiệu năng tối đa cho các hệ thống biên (Edge VM / CPE).
+> **Luật 1: Luật Đồng thuận (Consensus Rule)**
+> Áp dụng cho các đợt tấn công phối hợp cường độ trung bình/nhỏ. Từng hành vi đơn lẻ chưa đủ nguy hiểm để chặn, nhưng sự cộng dồn của chúng tạo nên mối đe dọa lớn.
+> $$\text{Tổng điểm tích lũy (Confidence)} = \sum \text{Confidence} \ge 1.5$$
+> *Ví dụ:* IP thực hiện Port Scan (điểm 0.7) kết hợp với AI phát hiện nhịp điệu Beaconing nghi ngờ nhẹ (điểm 0.8), tổng điểm = 1.5 $\rightarrow$ **BLOCK**. Định danh tội danh: `Botnet/C2 (LSTM Beaconing + Port Scan)`.
+
+> [!IMPORTANT]
+> **Luật 2: Luật Phủ quyết khẩn cấp (Critical Bypass)**
+> Dành riêng cho các đợt tấn công mức độ nguy hiểm cực kỳ cao và rõ ràng. Bất kể tổng điểm tích lũy là bao nhiêu, nếu xuất hiện **BẤT KỲ một bằng chứng đơn lẻ nào có Confidence $\ge 0.85$**, IP đó sẽ bị **BLOCK NGAY LẬP TỨC**.
+> *Ví dụ:* AI LSTM phát hiện nhịp Beacon rõ ràng với độ tin cậy 0.96 $\rightarrow$ Chặn ngay lập tức! Hoặc DNS Detector phát hiện DNS Tunneling với độ tin cậy 0.90 $\rightarrow$ Chặn ngay lập tức!
 
 ---
 
-## 📋 5. Yêu cầu hệ thống (Prerequisites)
+## 🚀 5. Hướng dẫn Cài đặt & Sử dụng (Quick Start)
 
-*   **Hệ điều hành:** Ubuntu Linux (Khuyến nghị **24.04 / 25.04 LTS**).
-*   **VPN Gateway:** Đã cài đặt dịch vụ **WireGuard** hoạt động trên interface `wg0`.
-*   **IDS Logs:** Đã cài đặt **Zeek IDS** cấu hình giám sát interface `wg0` và xuất log ra thư mục mặc định (`/opt/zeek/logs/current/conn.log` hoặc thư mục tự chọn).
-*   **Môi trường:** Python **3.11** cài đặt sẵn trên hệ điều hành.
+### A. Yêu cầu hệ thống
+*   **Hệ điều hành:** Ubuntu Linux (Khuyên dùng 24.04 / 25.04 LTS).
+*   **Dịch vụ nền:** Đã cấu hình chạy **WireGuard VPN** (`wg0`) và **Zeek IDS** (giám sát `wg0`).
+*   **Môi trường:** Python version **3.11**.
 
----
+### B. Cài đặt Môi trường
+Tạo và kích hoạt môi trường ảo Python cô lập:
 
-## 💾 6. Hướng dẫn Cài đặt (Installation)
-
-Hãy triển khai môi trường Python ảo độc lập để cô lập các thư viện MLOps một cách chuyên nghiệp theo các bước sau:
-
-**Bước 1: Tạo môi trường ảo Python 3.11**
 ```bash
+# 1. Tạo môi trường ảo
 python3.11 -m venv vpn_env
-```
 
-**Bước 2: Kích hoạt môi trường ảo**
-```bash
+# 2. Kích hoạt môi trường ảo
 source vpn_env/bin/activate
-```
 
-**Bước 3: Cài đặt các thư viện AI chuẩn xác**
-```bash
+# 3. Cài đặt các thư viện MLOps & System tương thích
 pip install tensorflow-cpu "numpy<2.0.0" colorama pyyaml
 ```
 
-> [!IMPORTANT]
-> - Việc sử dụng `numpy<2.0.0` là bắt buộc để tương thích tuyệt đối với cấu trúc dữ liệu của thư viện suy luận `tensorflow-cpu`.
-> - Thư viện `pyyaml` được sử dụng để phân tích cú pháp tệp cấu hình slips.yaml.
+> [!CAUTION]
+> Bắt buộc phải cài đặt `numpy<2.0.0` để tương thích hoàn toàn với nhân suy luận của `tensorflow-cpu` và tránh các lỗi không tương thích kiểu dữ liệu mảng.
 
----
-
-## 🚀 7. Hướng dẫn Sử dụng (Usage)
-
-Do hệ thống phải tương tác trực tiếp với tường lửa Linux (`iptables`) để khóa các IP xâm nhập, bạn bắt buộc phải khởi chạy Gateway bằng quyền **root (sudo)** và trỏ trực tiếp vào Python của môi trường ảo:
+### C. Khởi chạy Gateway
+Chạy chương trình với quyền **root (sudo)** bằng đường dẫn Python của môi trường ảo để hệ thống có quyền cấu hình tường lửa:
 
 ```bash
 sudo ./vpn_env/bin/python main_vpn_ids.py
 ```
 
-### Cấu hình hệ thống linh hoạt:
-- **`config/slips.yaml`:** Quản lý tham số hệ thống (ngưỡng xác suất chặn Threat Threshold, đường dẫn log Zeek, chế độ giả lập chặn - simulation mode).
-- **`config/whitelist.conf`:** Định nghĩa các IP nguồn, IP đích, CIDR hoặc tên miền tin cậy (ví dụ: `8.8.8.8`, `wikipedia.org`) để bypass sớm ở cổng vào, giúp tối ưu hóa CPU tối đa.
+*   **`config/slips.yaml`:** Quản lý cấu hình linh hoạt (ngưỡng AI, Simulation Mode, đường dẫn log Zeek).
+*   **`config/whitelist.conf`:** Định nghĩa IP, CIDR và Domain an toàn để bypass nhanh ở cổng vào, bảo vệ CPU.
 
 ---
 
-## 🧪 8. Kịch bản Kiểm thử Tích hợp (Testing Scenarios)
+## 🧪 6. Kịch bản Kiểm thử Tích hợp (Testing Scenarios)
 
-Dự án cung cấp sẵn một kịch bản kiểm thử tích hợp tự động hoàn chỉnh mô phỏng các hành vi thực tế để bạn kiểm tra luồng hoạt động mà không cần setup VPN hay Zeek thật:
+Dự án cung cấp một bộ công cụ kiểm thử tích hợp tự động hoàn chỉnh **[test_system_v2.py](file:///d:/HUST/2025.2/ATHTTT/openslips/scripts/test_system_v2.py)** giúp giả lập và xác minh chính xác cả 7 kịch bản logic cốt lõi của hệ thống mà không cần cài đặt VPN hay Zeek thật:
 
-### Chạy kiểm thử tự động 4 kịch bản:
 ```bash
 ./vpn_env/bin/python scripts/test_system_v2.py
 ```
 
-Khi chạy script trên, hệ thống sẽ giả lập luồng log Zeek ghi vào `dataset/conn.log` và xác minh 4 hành vi sau:
+**Kết quả kiểm thử thực tế đạt điểm chất lượng tuyệt đối (100% PASSED):**
 
-### 🟢 Kịch bản 1: Whitelist Bypass (IP & Domain tin cậy)
-- **Hành vi giả lập:** Gửi log từ IP nguồn `8.8.8.8` hoặc truy vấn DNS đến `wikipedia.org`.
-- **Kết quả hiển thị trên Terminal:**
-  ```text
-  [WHITELIST] Bypass/Ignore luồng kết nối tin cậy: SRC=8.8.8.8
-  ```
-- **Ý nghĩa:** Traffic an toàn được bypass ngay lập tức trước khi đi vào lõi AI, bảo vệ tài nguyên CPU.
-
-### 🟡 Kịch bản 2: Cold Start Protection (Khởi động nguội)
-- **Hành vi giả lập:** IP mới `192.168.10.12` bắt đầu gửi các kết nối đầu tiên.
-- **Kết quả hiển thị trên Terminal:**
-  ```text
-  [COLD_START] IP 192.168.10.12 đang thu thập dữ liệu chuỗi: 12/20 ký tự (Chưa đủ điều kiện suy luận AI)
-  ```
-- **Ý nghĩa:** Bảo vệ Graceful Wait hoạt động đúng, bỏ qua suy luận AI cho đến khi thu thập đủ 20 ký tự.
-
-### 🔵 Kịch bản 3: Normal Traffic (Hành vi an toàn)
-- **Hành vi giả lập:** IP gửi gói tin ngẫu nhiên, khoảng cách thời gian và kích thước ngẫu nhiên (chuỗi ký tự hỗn loạn không tuần hoàn).
-- **Kết quả hiển thị trên Terminal:**
-  ```text
-  [LSTM_SCORER] Phân tích chuỗi IP 192.168.10.12: a.B.c.D.e.F... -> Malicious Probability: 12.45% -> [SAFE]
-  ```
-- **Ý nghĩa:** Lõi AI LSTM phân loại chính xác các kết nối bình thường, không gây ra báo động giả (False Positive).
-
-### 🔴 Kịch bản 4: C2 Beaconing Attack (Chặn và khóa IP độc hại)
-- **Hành vi giả lập:** IP `192.168.10.12` gửi liên tiếp các gói tin đều đặn theo chu kỳ cố định (chuỗi ký tự lặp lặp tuần hoàn `AAAAAAAAAAAAAAAAAAAA`).
-- **Kết quả hiển thị trên Terminal:**
-  ```text
-  [LSTM_SCORER] Phân tích chuỗi IP 192.168.10.12: AAAAAAAAAAAAAAAAAAAA -> Malicious Probability: 96.84% -> [MALICIOUS DETECTED]
-  [FIREWALL] Thực thi chặn IP: 192.168.10.12 -> Lệnh áp dụng: iptables -A INPUT -s 192.168.10.12 -j DROP
-  ```
-- **Ý nghĩa:** Phát hiện chuẩn xác các hành vi tấn công tự động của Botnet/C2 Beaconing và tự động chặn cứng IP ở tầng tường lửa hệ thống.
+```text
+================================================================================
+ KẾT QUẢ ĐÁNH GIÁ CHẤT LƯỢNG HỆ THỐNG 
+================================================================================
+ - Kịch bản WHITELIST_BYPASS         : ĐẠT (PASSED) -> Bypass 8.8.8.8 & wikipedia.org
+ - Kịch bản COLD_START_SAFE          : ĐẠT (PASSED) -> Graceful Wait cho IP kết nối < 20 lần
+ - Kịch bản NORMAL_TRAFFIC_SAFE      : ĐẠT (PASSED) -> IP hành vi sạch, AI đánh giá Safe (40% rủi ro)
+ - Kịch bản CRITICAL_BYPASS_BLOCKED  : ĐẠT (PASSED) -> LSTM Beaconing (0.96) kích hoạt Luật Phủ Quyết
+ - Kịch bản CONSENSUS_BLOCKED        : ĐẠT (PASSED) -> Scan (0.7) + LSTM (0.8) kích hoạt Luật Đồng Thuận
+ - Kịch bản DNS_DGA_BLOCKED          : ĐẠT (PASSED) -> DNS DGA (Entropy 4.70 > 4.2) kích hoạt Luật Phủ Quyết
+ - Kịch bản DNS_TUNNELING_BLOCKED    : ĐẠT (PASSED) -> DNS Tunnel (Subdomain 60 ký tự) kích hoạt Luật Phủ Quyết
+================================================================================
+ KẾT LUẬN: HỆ THỐNG ĐẠT ĐIỂM TUYỆT ĐỐI, SẴN SÀNG TRIỂN KHAI V2! 
+================================================================================
+```
