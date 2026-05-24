@@ -249,14 +249,16 @@ class AIVPN_Gateway:
                             pass
                 
                 # 3. Đẩy log kết nối vào Log Discretizer để mã hóa ký tự và lưu buffer trượt
-                # Bỏ qua cổng DNS (53) để tránh làm sai lệch chuỗi nhịp điệu phân tích của LSTM C2 Scorer
+                # Bỏ qua các cổng rác của Windows (NetBIOS, LLMNR, SSDP, mDNS, DHCP, DNS)
+                # để tránh làm sai lệch chuỗi nhịp điệu phân tích của LSTM C2 Scorer (vì chúng cũng gửi định kỳ)
                 resp_port = parsed_log.get("id.resp_p")
                 try:
                     resp_port = int(resp_port) if resp_port is not None else 0
                 except (ValueError, TypeError):
                     resp_port = 0
-                
-                if resp_port == 53:
+
+                noisy_ports = {53, 67, 68, 137, 138, 139, 1900, 5353, 5355}
+                if resp_port in noisy_ports:
                     continue
 
                 # Bỏ qua nếu IP nguồn này đang thực hiện quét nhiều cổng (Port Scan) trong cửa sổ 10s
@@ -265,6 +267,10 @@ class AIVPN_Gateway:
                 if history_conns:
                     unique_ports = {conn[1] for conn in history_conns}
                     if len(unique_ports) > 2:
+                        # RẤT QUAN TRỌNG: Xóa sạch bộ đệm LSTM của IP này nếu phát hiện nó đang quét cổng!
+                        # Ngăn chặn việc trộn lẫn lưu lượng Port Scan vào LSTM gây ra báo động nhầm "C2 Beaconing".
+                        if ip_src in self.discretizer.buffers:
+                            self.discretizer.buffers[ip_src].clear()
                         continue
 
                 char, window, is_ready, current_len = self.discretizer.process_log(parsed_log)
