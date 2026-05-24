@@ -71,9 +71,12 @@ WhitelistParser = whitelist_parser.WhitelistParser
 log_discretizer = importlib.import_module("2_data_parser.log_discretizer")
 LogDiscretizer = log_discretizer.LogDiscretizer
 
-# Layer 3: Static Port Scan Detector
+# Layer 3: Static Port Scan Detector & DNS Detector
 scan_detector = importlib.import_module("3_detection_engine.scan_detector")
 ScanDetector = scan_detector.ScanDetector
+
+dns_detector = importlib.import_module("3_detection_engine.dns_detector")
+DNSDetector = dns_detector.DNSDetector
 
 # Layer 4: AI Risk Manager & Evidence Manager
 scoring_engine_v2 = importlib.import_module("4_risk_manager.scoring_engine_v2")
@@ -111,11 +114,15 @@ class AIVPN_Gateway:
         self.tailer = ZeekTailer(log_path=self.log_path)
         self.discretizer = LogDiscretizer(max_len=20)
         
-        # 5. Khởi tạo Lớp 3: Static Port Scan Detector
+        # 5. Khởi tạo Lớp 3: Static Port Scan Detector & DNS Detector
         self.scan_detector = ScanDetector(
             ports_threshold=10, 
             window_seconds=10.0, 
             cooldown_seconds=10.0
+        )
+        self.dns_detector = DNSDetector(
+            entropy_threshold=4.2,
+            subdomain_len_threshold=45
         )
         
         # 6. Khởi tạo Lớp 4: LSTM Scoring Engine & Evidence Manager (Bồi thẩm đoàn)
@@ -227,6 +234,19 @@ class AIVPN_Gateway:
                         self.log_queue.put_nowait(queue_item)
                     except queue.Full:
                         pass
+                
+                # 2.5. Xử lý DNS Detector (Non-blocking computation)
+                if domain:
+                    dns_evidence_data = self.dns_detector.process_domain(ip_src, domain)
+                    if dns_evidence_data:
+                        queue_item = {
+                            "type": "EVIDENCE",
+                            "data": dns_evidence_data
+                        }
+                        try:
+                            self.log_queue.put_nowait(queue_item)
+                        except queue.Full:
+                            pass
                 
                 # 3. Đẩy log kết nối vào Log Discretizer để mã hóa ký tự và lưu buffer trượt
                 char, window, is_ready, current_len = self.discretizer.process_log(parsed_log)

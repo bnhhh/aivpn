@@ -89,7 +89,9 @@ def run_test():
         "cold_start_safe": True,
         "normal_traffic_safe": False,
         "critical_bypass_blocked": False,
-        "consensus_blocked": False
+        "consensus_blocked": False,
+        "dns_dga_blocked": False,
+        "dns_tunneling_blocked": False
     }
 
     # ==================================================================================
@@ -240,6 +242,51 @@ def run_test():
         success_flags["consensus_blocked"] = True
     else:
         print(f"{Colors.RED}[✗] Test 5 THẤT BẠI: Sai logic đồng thuận! Block sớm? {is_blocked_step_a}, Block muộn? {is_blocked_step_b}, Verdict: {verdict_step_b}{Colors.RESET}")
+
+    # ==================================================================================
+    # KỊCH BẢN 6: Phát hiện DNS DGA (Entropy > 4.2 -> Critical Bypass -> Block)
+    # ==================================================================================
+    print(f"\n{Colors.CYAN}--- [TEST 6] Kiểm tra DNS DGA (Entropy > 4.2 -> Luật Phủ Quyết) ---{Colors.RESET}")
+    dga_ip = "192.168.10.20"
+    dga_ts = now + 6000.0
+    
+    # Giả lập truy vấn DNS DGA
+    simulate_log(log_path, dga_ts, dga_ip, "9.9.9.9", 53, 0.1, 75, query="x8f9a2z9p1m2w3e4r5t6y7u8i9o0.evil.com")
+    time.sleep(2.0)
+    
+    if dga_ip in gateway.evidence_manager.blocker.active_blocks:
+        profile = gateway.evidence_manager.profiles.get(dga_ip, {})
+        verdict = profile.get("verdict", "")
+        if "DGA_Malware" in verdict or "Critical" in verdict:
+            print(f"{Colors.GREEN}[✓] Test 6 ĐẠT: Phát hiện DGA thành công! Tội danh: '{verdict}'. IP {dga_ip} bị BLOCK do DGA!{Colors.RESET}")
+            success_flags["dns_dga_blocked"] = True
+        else:
+            print(f"{Colors.RED}[✗] Test 6 THẤT BẠI: Đã block IP nhưng không đúng tội danh! Verdict: {verdict}{Colors.RESET}")
+    else:
+        print(f"{Colors.RED}[✗] Test 6 THẤT BẠI: IP thực hiện truy vấn DGA không bị block!{Colors.RESET}")
+
+    # ==================================================================================
+    # KỊCH BẢN 7: Phát hiện DNS Tunneling (Subdomain dài > 45 -> Critical Bypass -> Block)
+    # ==================================================================================
+    print(f"\n{Colors.CYAN}--- [TEST 7] Kiểm tra DNS Tunneling (Subdomain > 45 -> Luật Phủ Quyết) ---{Colors.RESET}")
+    tunnel_ip = "192.168.10.22"
+    tunnel_ts = now + 8000.0
+    
+    # Subdomain dài 54 ký tự
+    long_subdomain_domain = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a.tunnel.evil.com"
+    simulate_log(log_path, tunnel_ts, tunnel_ip, "9.9.9.9", 53, 0.1, 85, query=long_subdomain_domain)
+    time.sleep(2.0)
+    
+    if tunnel_ip in gateway.evidence_manager.blocker.active_blocks:
+        profile = gateway.evidence_manager.profiles.get(tunnel_ip, {})
+        verdict = profile.get("verdict", "")
+        if "DNS_Tunneling" in verdict or "Critical" in verdict:
+            print(f"{Colors.GREEN}[✓] Test 7 ĐẠT: Phát hiện DNS Tunneling thành công! Tội danh: '{verdict}'. IP {tunnel_ip} bị BLOCK do Tunneling!{Colors.RESET}")
+            success_flags["dns_tunneling_blocked"] = True
+        else:
+            print(f"{Colors.RED}[✗] Test 7 THẤT BẠI: Đã block IP nhưng không đúng tội danh! Verdict: {verdict}{Colors.RESET}")
+    else:
+        print(f"{Colors.RED}[✗] Test 7 THẤT BẠI: IP thực hiện DNS Tunneling không bị block!{Colors.RESET}")
 
     # Dừng hệ thống an toàn
     print("")
