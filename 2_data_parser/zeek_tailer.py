@@ -206,6 +206,13 @@ class ZeekTailer:
 
             try:
                 with open(self.log_path, "r", encoding="utf-8") as f:
+                    # Đọc header trước khi seek đến cuối file để lấy danh sách cột
+                    for _ in range(15):
+                        hl = f.readline()
+                        if hl and hl.startswith("#fields"):
+                            self.fields = hl.strip().split("\t")[1:]
+                            break
+                            
                     # Di chuyển con trỏ tới cuối file log hiện tại (tail -f hành vi chuẩn)
                     f.seek(0, os.SEEK_END)
                     last_size = os.path.getsize(self.log_path)
