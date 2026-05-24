@@ -148,15 +148,8 @@ class EvidenceManager:
             rule_applied = ""
             
             # Phân loại và định danh mã độc theo dấu vết các bằng chứng
-            if has_critical:
-                rule_applied = "QUYỀN PHỦ QUYẾT KHẨN CẤP (Confidence >= 0.85)"
-                if critical_evidence.module_name == "LSTM":
-                    verdict = "Critical C2 Beaconing (Deep Learning)"
-                elif critical_evidence.module_name == "ScanDetector":
-                    verdict = "Critical Port Scan Attack"
-                else:
-                    verdict = f"Critical Attack ({critical_evidence.attack_type})"
-            else:
+            # Ưu tiên phán quyết Đồng thuận Cộng dồn để định danh đầy đủ chuỗi tấn công APT kết hợp
+            if has_consensus:
                 rule_applied = "ĐỒNG THUẬN CỘNG DỒN (Tổng điểm >= 1.5)"
                 modules = {ev.module_name for ev in profile["evidences"]}
                 if "LSTM" in modules and "ScanDetector" in modules:
@@ -167,6 +160,14 @@ class EvidenceManager:
                     verdict = "C2 Beaconing (Suspicious Rhythm)"
                 else:
                     verdict = "Combined Suspicious Network Activity"
+            else:
+                rule_applied = "QUYỀN PHỦ QUYẾT KHẨN CẤP (Confidence >= 0.85)"
+                if critical_evidence.module_name == "LSTM":
+                    verdict = "Critical C2 Beaconing (Deep Learning)"
+                elif critical_evidence.module_name == "ScanDetector":
+                    verdict = "Critical Port Scan Attack"
+                else:
+                    verdict = f"Critical Attack ({critical_evidence.attack_type})"
             
             # Áp dụng lệnh khóa tường lửa
             profile["blocked"] = True
