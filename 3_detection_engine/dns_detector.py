@@ -69,9 +69,13 @@ class DNSDetector:
     """
     Module phân tích lưu lượng tên miền (DNS Traffic Analysis Hunter).
     """
-    def __init__(self, entropy_threshold: float = 4.2, subdomain_len_threshold: int = 45):
+    def __init__(self, entropy_threshold: float = 4.2, subdomain_len_threshold: int = 45, cooldown_seconds: float = 10.0):
         self.entropy_threshold = entropy_threshold
         self.subdomain_len_threshold = subdomain_len_threshold
+        self.cooldown_seconds = cooldown_seconds
+        
+        # Thời điểm gửi bằng chứng gần nhất của từng IP theo loại tấn công: { "ip_attackType": timestamp }
+        self.last_evidence_time: Dict[str, float] = {}
 
     def extract_subdomain(self, domain: str) -> str:
         """
@@ -113,47 +117,65 @@ class DNSDetector:
         
         # --- LUẬT 2: Phát hiện DNS Tunneling (Độ dài subdomain lớn) ---
         if subdomain_len > self.subdomain_len_threshold:
-            print(
-                f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
-                f"{Colors.YELLOW}{Colors.BRIGHT}[DNS_DETECT]{Colors.RESET} "
-                f"IP {Colors.GREEN}{ip_src}{Colors.RESET} truy vấn tên miền có Subdomain quá dài ({Colors.BRIGHT}{subdomain_len}{Colors.RESET} ký tự): '{Colors.CYAN}{domain}{Colors.RESET}'!"
-            )
-            return {
-                "ip": ip_src,
-                "module_name": "DNS_Detector",
-                "confidence": 0.90, # Ngưỡng cực kỳ cao
-                "attack_type": "DNS_Tunneling",
-                "timestamp": ts
-            }
+            attack_type = "DNS_Tunneling"
+            cache_key = f"{ip_src}_{attack_type}"
+            last_sent = self.last_evidence_time.get(cache_key, 0.0)
+            if ts - last_sent >= self.cooldown_seconds:
+                self.last_evidence_time[cache_key] = ts
+                print(
+                    f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
+                    f"{Colors.YELLOW}{Colors.BRIGHT}[DNS_DETECT]{Colors.RESET} "
+                    f"IP {Colors.GREEN}{ip_src}{Colors.RESET} truy vấn tên miền có Subdomain quá dài ({Colors.BRIGHT}{subdomain_len}{Colors.RESET} ký tự): '{Colors.CYAN}{domain}{Colors.RESET}'!"
+                )
+                return {
+                    "ip": ip_src,
+                    "module_name": "DNS_Detector",
+                    "confidence": 0.90, # Ngưỡng cực kỳ cao
+                    "attack_type": attack_type,
+                    "timestamp": ts
+                }
+            return None
             
         # --- LUẬT 1: Phát hiện DGA (Shannon Entropy cao) ---
         entropy = calculate_entropy(domain)
         if entropy >= self.entropy_threshold:
-            print(
-                f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
-                f"{Colors.YELLOW}{Colors.BRIGHT}[DNS_DETECT]{Colors.RESET} "
-                f"IP {Colors.GREEN}{ip_src}{Colors.RESET} truy vấn tên miền có mức độ hỗn loạn cao (Entropy = {Colors.BRIGHT}{entropy:.4f}{Colors.RESET}): '{Colors.CYAN}{domain}{Colors.RESET}'!"
-            )
-            return {
-                "ip": ip_src,
-                "module_name": "DNS_Detector",
-                "confidence": 0.85, # Đạt ngưỡng phủ quyết khẩn cấp (Critical Bypass)
-                "attack_type": "DGA_Malware",
-                "timestamp": ts
-            }
+            attack_type = "DGA_Malware"
+            cache_key = f"{ip_src}_{attack_type}"
+            last_sent = self.last_evidence_time.get(cache_key, 0.0)
+            if ts - last_sent >= self.cooldown_seconds:
+                self.last_evidence_time[cache_key] = ts
+                print(
+                    f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
+                    f"{Colors.YELLOW}{Colors.BRIGHT}[DNS_DETECT]{Colors.RESET} "
+                    f"IP {Colors.GREEN}{ip_src}{Colors.RESET} truy vấn tên miền có mức độ hỗn loạn cao (Entropy = {Colors.BRIGHT}{entropy:.4f}{Colors.RESET}): '{Colors.CYAN}{domain}{Colors.RESET}'!"
+                )
+                return {
+                    "ip": ip_src,
+                    "module_name": "DNS_Detector",
+                    "confidence": 0.85, # Đạt ngưỡng phủ quyết khẩn cấp (Critical Bypass)
+                    "attack_type": attack_type,
+                    "timestamp": ts
+                }
+            return None
         elif 3.6 <= entropy < self.entropy_threshold:
-            print(
-                f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
-                f"{Colors.YELLOW}{Colors.BRIGHT}[DNS_DETECT]{Colors.RESET} "
-                f"IP {Colors.GREEN}{ip_src}{Colors.RESET} truy vấn tên miền mờ ám (Entropy = {Colors.BRIGHT}{entropy:.4f}{Colors.RESET}): '{Colors.CYAN}{domain}{Colors.RESET}'!"
-            )
-            return {
-                "ip": ip_src,
-                "module_name": "DNS_Detector",
-                "confidence": 0.70, # Dưới ngưỡng phủ quyết, chờ Đồng Thuận
-                "attack_type": "Suspicious_Domain",
-                "timestamp": ts
-            }
+            attack_type = "Suspicious_Domain"
+            cache_key = f"{ip_src}_{attack_type}"
+            last_sent = self.last_evidence_time.get(cache_key, 0.0)
+            if ts - last_sent >= self.cooldown_seconds:
+                self.last_evidence_time[cache_key] = ts
+                print(
+                    f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
+                    f"{Colors.YELLOW}{Colors.BRIGHT}[DNS_DETECT]{Colors.RESET} "
+                    f"IP {Colors.GREEN}{ip_src}{Colors.RESET} truy vấn tên miền mờ ám (Entropy = {Colors.BRIGHT}{entropy:.4f}{Colors.RESET}): '{Colors.CYAN}{domain}{Colors.RESET}'!"
+                )
+                return {
+                    "ip": ip_src,
+                    "module_name": "DNS_Detector",
+                    "confidence": 0.70, # Dưới ngưỡng phủ quyết, chờ Đồng Thuận
+                    "attack_type": attack_type,
+                    "timestamp": ts
+                }
+            return None
 
         return None
 
