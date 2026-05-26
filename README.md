@@ -58,7 +58,7 @@ graph TD
     E -->|Mã hóa| G[(queue.Queue)]
     F -->|Bằng chứng Tĩnh| G
     
-    G -->|Worker Thread| H(AI LSTM & Bồi thẩm đoàn)
+    G -->|Worker Thread| H(AI LSTM & Ra quyết định)
     H -->|Thỏa mãn Luật kép| I[Firewall Blocker]
     I -->|iptables -I INPUT 1| J((Khóa IP Cấp Kernel))
 ```
