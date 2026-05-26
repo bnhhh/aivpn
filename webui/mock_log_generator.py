@@ -14,9 +14,9 @@ NOISE_LOGS = [
 
 # Các dòng log có giá trị thực thi (Sẽ được đẩy lên Frontend)
 EVIDENCE_LOGS = [
-    "[EVIDENCE] Bằng chứng từ [ScanDetector]: IP=10.38.50.2, Conf=0.70, Tấn công=High_Connection_Rate",
-    "[EVIDENCE] Bằng chứng từ [DNSDetector]: IP=10.38.50.4, Conf=0.85, Tấn công=DGA_Malware",
-    "[EVIDENCE] Bằng chứng từ [LSTM]: IP=10.38.50.5, Conf=0.82, Tấn công=Suspicious_Rhythm"
+    "[EVIDENCE] Lớp phán quyết nhận bằng chứng từ [ScanDetector]: IP=10.38.50.2, Conf=0.70, Tấn công=High_Connection_Rate",
+    "[EVIDENCE] Lớp phán quyết nhận bằng chứng từ [DNSDetector]: IP=10.38.50.4, Conf=0.85, Tấn công=DGA_Malware",
+    "[EVIDENCE] Lớp phán quyết nhận bằng chứng từ [LSTM]: IP=10.38.50.5, Conf=0.82, Tấn công=Suspicious_Rhythm"
 ]
 
 WHITELIST_LOGS = [
@@ -26,10 +26,10 @@ WHITELIST_LOGS = [
 
 BLOCK_LOGS = [
     "[ALERT] Cảnh báo ĐỎ! IP 10.38.50.4 vi phạm Luật Phủ quyết Khẩn cấp!",
-    "[BLOCK] FirewallBlocker (L4) -> iptables DROP IP 10.38.50.4",
+    "[FIREWALL] Đã áp dụng chặn iptables thành công cho IP 10.38.50.4",
     "[ALERT] Hệ thống nhận thấy IP 10.38.50.2 vi phạm Luật Đồng thuận (Tổng điểm 1.52)!",
-    "[BLOCK] FirewallBlocker (L4) -> iptables DROP IP 10.38.50.2",
-    "[BLOCK] FirewallBlocker (L4) -> iptables DROP IP 10.38.50.5"
+    "[FIREWALL] Đã áp dụng chặn iptables thành công cho IP 10.38.50.2",
+    "[FIREWALL] Đã áp dụng chặn iptables thành công cho IP 10.38.50.5"
 ]
 
 def generate_logs():

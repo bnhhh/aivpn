@@ -24,12 +24,16 @@ def generate_log_stream():
             # Remove ANSI color codes
             line = re.sub(r'\x1b\[[0-9;]*m', '', line)
             
+            # Replace terminology
+            line = line.replace("Bồi thẩm đoàn", "Lớp phán quyết")
+            line = line.replace("[JURY_VERDICT]", "[TỘI DANH ĐỊNH DANH]")
+            
             # Filtering logic - Filter out AI low-level complexities
             if any(keyword in line for keyword in ["[DISCRETIZER]", "[COLD_START]", "[PARSER]"]):
                 continue
                 
             # Only keep execution results
-            if any(keyword in line for keyword in ["[EVIDENCE]", "[ALERT]", "[BLOCK]", "[WHITELIST]", "[JURY_VERDICT]"]):
+            if any(keyword in line for keyword in ["[EVIDENCE]", "[ALERT]", "[FIREWALL]", "[BLOCK]", "[WHITELIST]", "[TỘI DANH ĐỊNH DANH]", "Tội danh định danh", "IP Bị Kết Án", "Quy tắc áp dụng", "TIẾN HÀNH KHÓA KHẨN CẤP"]):
                 yield f"data: {line.strip()}\n\n"
 
 @app.route("/")

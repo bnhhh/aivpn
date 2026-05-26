@@ -54,7 +54,7 @@
             </h2>
             <div id="timeline" class="flex-1 scrollable-content flex flex-col gap-2 font-mono text-sm pr-2">
                 <!-- Logs will be inserted here -->
-                <div class="p-2 text-gray-500 italic border border-gray-800 rounded text-center" id="waiting-msg">Đang chờ tín hiệu từ Bồi thẩm đoàn...</div>
+                <div class="p-2 text-gray-500 italic border border-gray-800 rounded text-center" id="waiting-msg">Đang chờ tín hiệu từ Lớp phán quyết...</div>
             </div>
         </div>
 
@@ -115,11 +115,11 @@
             else if (logLine.includes('[WHITELIST]')) {
                 div.classList.add('log-whitelist');
             }
-            else if (logLine.includes('[ALERT]') || logLine.includes('[BLOCK]')) {
+            else if (logLine.includes('[ALERT]') || logLine.includes('[FIREWALL]') || logLine.includes('[BLOCK]') || logLine.includes('[TỘI DANH ĐỊNH DANH]') || logLine.includes('Tội danh định danh') || logLine.includes('IP Bị Kết Án') || logLine.includes('TIẾN HÀNH KHÓA KHẨN CẤP')) {
                 div.classList.add('log-critical');
                 
                 // Extract blocked IP and update right panel
-                if (logLine.includes('[BLOCK]')) {
+                if (logLine.includes('[FIREWALL]') || logLine.includes('[BLOCK]')) {
                     const ips = extractIPs(logLine);
                     ips.forEach(ip => {
                         if (!blockedIPs.has(ip)) {
