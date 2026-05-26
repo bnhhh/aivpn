@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIVPN SOC Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Courier New', Courier, monospace; }
+        .cyber-panel { background-color: #161b22; border: 1px solid #30363d; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .log-evidence { color: #d29922; }
+        .log-whitelist { color: #8b949e; }
+        .log-critical { background-color: rgba(248, 81, 73, 0.1); color: #ff7b72; border-left: 4px solid #f85149; animation: pulse-bg 2s infinite; }
+        
+        @keyframes pulse-bg { 
+            0% { background-color: rgba(248, 81, 73, 0.1); } 
+            50% { background-color: rgba(248, 81, 73, 0.2); } 
+            100% { background-color: rgba(248, 81, 73, 0.1); } 
+        }
+        
+        .scrollable-content { max-height: 75vh; overflow-y: auto; }
+        
+        /* Custom scrollbar for cyber feel */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0d1117; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8b949e; }
+    </style>
+</head>
+<body class="h-screen flex flex-col p-4">
+
+    <!-- Header: Counters -->
+    <header class="flex justify-between items-center mb-6 gap-4">
+        <div class="cyber-panel p-4 flex-1 text-center">
+            <h2 class="text-sm text-gray-400 uppercase tracking-wider font-bold">Evidences Collected</h2>
+            <p id="count-evidence" class="text-4xl font-bold text-yellow-500 mt-2 transition-all duration-300">0</p>
+        </div>
+        <div class="cyber-panel p-4 flex-1 text-center">
+            <h2 class="text-sm text-gray-400 uppercase tracking-wider font-bold">Monitored IPs</h2>
+            <p id="count-monitored" class="text-4xl font-bold text-blue-400 mt-2 transition-all duration-300">0</p>
+        </div>
+        <div class="cyber-panel p-4 flex-1 text-center">
+            <h2 class="text-sm text-gray-400 uppercase tracking-wider font-bold">Blocked IPs</h2>
+            <p id="count-blocked" class="text-4xl font-bold text-red-500 mt-2 transition-all duration-300">0</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex flex-1 gap-6 min-h-0">
+        <!-- Timeline -->
+        <div class="cyber-panel flex flex-col w-2/3 p-4">
+            <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2 text-green-400 flex items-center">
+                <span class="animate-pulse mr-2">⚡</span> Live Evidence Timeline
+            </h2>
+            <div id="timeline" class="flex-1 scrollable-content flex flex-col gap-2 font-mono text-sm pr-2">
+                <!-- Logs will be inserted here -->
+                <div class="p-2 text-gray-500 italic border border-gray-800 rounded text-center" id="waiting-msg">Đang chờ tín hiệu từ Bồi thẩm đoàn...</div>
+            </div>
+        </div>
+
+        <!-- Blocked IPs -->
+        <div class="cyber-panel flex flex-col w-1/3 p-4">
+            <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2 text-red-500 flex items-center">
+                <span class="mr-2">🚫</span> Firewall Blocked IPs
+            </h2>
+            <ul id="blocked-list" class="flex-1 scrollable-content flex flex-col gap-2 font-mono text-sm pr-2">
+                <!-- Blocked IPs will be inserted here -->
+            </ul>
+        </div>
+    </main>
+
+    <script>
+        const monitoredIPs = new Set();
+        const blockedIPs = new Set();
+        let evidenceCount = 0;
+
+        const timelineEl = document.getElementById('timeline');
+        const waitingMsg = document.getElementById('waiting-msg');
+        const blockedListEl = document.getElementById('blocked-list');
+        const countEvidenceEl = document.getElementById('count-evidence');
+        const countMonitoredEl = document.getElementById('count-monitored');
+        const countBlockedEl = document.getElementById('count-blocked');
+
+        // Extract IP address from a string using regex
+        function extractIPs(text) {
+            const ipRegex = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
+            return text.match(ipRegex) || [];
+        }
+
+        const source = new EventSource("/stream");
+
+        source.onmessage = function(event) {
+            if (waitingMsg) {
+                waitingMsg.remove(); // Remove waiting message on first log
+            }
+
+            const logLine = event.data;
+            
+            // 1. Create timeline element
+            const div = document.createElement('div');
+            div.className = 'p-3 rounded border border-gray-800 break-words shadow-sm transition-all';
+            div.textContent = logLine;
+
+            // 2. Color Coding & Counters
+            if (logLine.includes('[EVIDENCE]')) {
+                div.classList.add('log-evidence');
+                evidenceCount++;
+                countEvidenceEl.textContent = evidenceCount;
+                
+                // Track monitored IPs from evidence logs
+                const ips = extractIPs(logLine);
+                ips.forEach(ip => monitoredIPs.add(ip));
+                countMonitoredEl.textContent = monitoredIPs.size;
+            } 
+            else if (logLine.includes('[WHITELIST]')) {
+                div.classList.add('log-whitelist');
+            }
+            else if (logLine.includes('[ALERT]') || logLine.includes('[BLOCK]')) {
+                div.classList.add('log-critical');
+                
+                // Extract blocked IP and update right panel
+                if (logLine.includes('[BLOCK]')) {
+                    const ips = extractIPs(logLine);
+                    ips.forEach(ip => {
+                        if (!blockedIPs.has(ip)) {
+                            blockedIPs.add(ip);
+                            const li = document.createElement('li');
+                            li.className = 'p-2 bg-red-900/20 border border-red-800 rounded text-red-400 flex items-center shadow-sm';
+                            li.innerHTML = `<span class="mr-2 text-lg">⚠️</span> <span>${ip}</span>`;
+                            blockedListEl.insertBefore(li, blockedListEl.firstChild);
+                            
+                            // Pop animation for counter
+                            countBlockedEl.textContent = blockedIPs.size;
+                            countBlockedEl.classList.add('scale-125');
+                            setTimeout(() => countBlockedEl.classList.remove('scale-125'), 200);
+                        }
+                    });
+                }
+            }
+
+            // 3. Insert to top of timeline
+            timelineEl.insertBefore(div, timelineEl.firstChild);
+
+            // Keep timeline from growing infinitely (e.g., max 100 items for performance)
+            if (timelineEl.childElementCount > 100) {
+                timelineEl.removeChild(timelineEl.lastChild);
+            }
+        };
+
+        source.onerror = function(err) {
+            console.error("SSE Connection Error:", err);
+            // Re-show waiting msg if needed, though SSE usually auto-reconnects
+        };
+    </script>
+</body>
+</html>
