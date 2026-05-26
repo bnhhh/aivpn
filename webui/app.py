@@ -11,8 +11,8 @@ def generate_log_stream():
         open(LOG_FILE, 'a', encoding="utf-8").close()
 
     with open(LOG_FILE, "r", encoding="utf-8") as f:
-        # Seek to the end of the file to only tail new logs
-        f.seek(0, os.SEEK_END)
+        # Trong môi trường Demo, đọc từ đầu file để thấy lịch sử cũ
+        # f.seek(0, os.SEEK_END) 
         while True:
             line = f.readline()
             if not line:
