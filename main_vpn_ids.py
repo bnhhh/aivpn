@@ -184,7 +184,7 @@ class AIVPN_Gateway:
         )
         print(f"{Colors.DIM}[SYSTEM] File log đang giám sát: {self.log_path}{Colors.RESET}")
         print(f"{Colors.DIM}[SYSTEM] Chế độ thiết kế: Kiến trúc dựa trên Bằng chứng & Bất đồng bộ (Queue){Colors.RESET}")
-        print(f"{Colors.DIM}[SYSTEM] Ngưỡng rủi ro AI (Threat Threshold): {self.scorer.threat_threshold * 100:.1f}% | Ngưỡng chặn Bồi thẩm đoàn: 1.50{Colors.RESET}\n")
+        print(f"{Colors.DIM}[SYSTEM] Ngưỡng rủi ro AI (Threat Threshold): {self.scorer.threat_threshold * 100:.1f}% | Nguong chan dong thuan: 1.50{Colors.RESET}\n")
 
     def _run_log_pipeline(self) -> None:
         """Đường ống tiếp nhận log (Producer): Đọc log, chạy whitelist, discretizer và quét cổng nhanh."""
@@ -318,7 +318,7 @@ class AIVPN_Gateway:
             print(f"{Colors.RED}[LỖI PIPELINE] Lỗi xảy ra khi xử lý luồng log: {e}{Colors.RESET}")
 
     def _process_queue_worker(self) -> None:
-        """Bộ thu nhận hàng đợi (Consumer): Thực thi tính toán AI và nạp bằng chứng cho Bồi thẩm đoàn."""
+        """Bộ thu nhận hàng đợi (Consumer): Thực thi tính toán AI và nạp bằng chứng cho lop phan quyet."""
         while self.running:
             try:
                 # Lấy tác vụ từ queue với timeout 0.5s để thread có thể thoát khi self.running = False
