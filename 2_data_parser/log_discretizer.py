@@ -73,19 +73,23 @@ class LogDiscretizer:
         char = chr(ord('A') + index)
         return char
 
-    def process_log(self, log_dict: Dict[str, Any]) -> Tuple[str, List[str], bool, int]:
+    def process_log(self, log_dict: Dict[str, Any]) -> Tuple[str, List[str], bool, int, str]:
         """
         Xử lý dòng log kết nối mạng đã parse:
         1. Tính toán Interval dựa trên lịch sử kết nối của IP.
         2. Chạy thuật toán Discretization ra ký tự đại diện.
         3. Đẩy ký tự vào collections.deque(maxlen=20) trượt liên tục của IP.
-        4. Trả về: (Ký tự vừa tạo, Danh sách ký tự hiện tại trong deque, Đủ 20 ký tự chưa, Số lượng hiện có).
+        4. Trả về: (Ký tự vừa tạo, Danh sách ký tự hiện tại trong deque, Đủ 20 ký tự chưa, Số lượng hiện có, flow_key).
         """
         src_ip = log_dict.get("id.orig_h")
+        dst_ip = log_dict.get("id.resp_h")
+        dst_port = log_dict.get("id.resp_p")
         ts = log_dict.get("timestamp")
         
-        if not src_ip or ts is None:
-            return "", [], False, 0
+        if not src_ip or not dst_ip or ts is None:
+            return "", [], False, 0, ""
+
+        flow_key = f"{src_ip}>{dst_ip}:{dst_port}"
 
         try:
             ts = float(ts)
@@ -112,7 +116,7 @@ class LogDiscretizer:
                 bytes_sent = 0
 
         # Tính Time Interval giữa kết nối hiện tại và kết nối trước đó từ IP này
-        last_ts = self.last_conn_times.get(src_ip)
+        last_ts = self.last_conn_times.get(flow_key)
         if last_ts is None:
             # Lần đầu kết nối: Interval mặc định là lớn (thưa thớt)
             interval = 60.0
@@ -122,23 +126,23 @@ class LogDiscretizer:
                 interval = 0.0  # Phòng ngừa sai lệch thời gian hệ thống
 
         # Cập nhật timestamp kết nối gần nhất của IP
-        self.last_conn_times[src_ip] = ts
+        self.last_conn_times[flow_key] = ts
 
         # Chạy băm Discretization
         char = self.discretize_flow(duration, bytes_sent, interval)
 
         # Khởi tạo collections.deque(maxlen=20) nếu IP này lần đầu tiên giao tiếp
-        if src_ip not in self.buffers:
-            self.buffers[src_ip] = deque(maxlen=self.max_len)
+        if flow_key not in self.buffers:
+            self.buffers[flow_key] = deque(maxlen=self.max_len)
 
         # Đẩy ký tự vừa băm vào bộ đệm trượt FIFO (tự động đẩy phần tử cũ nhất ra khi đầy)
-        self.buffers[src_ip].append(char)
+        self.buffers[flow_key].append(char)
 
-        current_window = list(self.buffers[src_ip])
+        current_window = list(self.buffers[flow_key])
         current_len = len(current_window)
         is_ready = current_len >= self.max_len
 
-        return char, current_window, is_ready, current_len
+        return char, current_window, is_ready, current_len, flow_key
 
 
 # --- KHỐI CHẠY KIỂM THỬ ĐỘC LẬP (UNIT TEST) ---

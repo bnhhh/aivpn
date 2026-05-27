@@ -269,11 +269,12 @@ class AIVPN_Gateway:
                     if len(unique_ports) > 2:
                         # RẤT QUAN TRỌNG: Xóa sạch bộ đệm LSTM của IP này nếu phát hiện nó đang quét cổng!
                         # Ngăn chặn việc trộn lẫn lưu lượng Port Scan vào LSTM gây ra báo động nhầm "C2 Beaconing".
-                        if ip_src in self.discretizer.buffers:
-                            self.discretizer.buffers[ip_src].clear()
+                        keys_to_clear = [k for k in self.discretizer.buffers.keys() if k.startswith(f"{ip_src}>")]
+                        for k in keys_to_clear:
+                            self.discretizer.buffers[k].clear()
                         continue
 
-                char, window, is_ready, current_len = self.discretizer.process_log(parsed_log)
+                char, window, is_ready, current_len, flow_key = self.discretizer.process_log(parsed_log)
                 if not char:
                     continue
 
@@ -283,7 +284,7 @@ class AIVPN_Gateway:
                 print(
                     f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
                     f"{Colors.YELLOW}[DISCRETIZER]{Colors.RESET} "
-                    f"Mã hóa kết nối IP {Colors.GREEN}{ip_src}{Colors.RESET} -> Ký tự: '{Colors.BRIGHT}{Colors.MAGENTA}{char}{Colors.RESET}'"
+                    f"Mã hóa kết nối {Colors.GREEN}{flow_key}{Colors.RESET} -> Ký tự: '{Colors.BRIGHT}{Colors.MAGENTA}{char}{Colors.RESET}'"
                 )
 
                 # 4. Kiểm tra bảo vệ Cold Start (Graceful Wait)
@@ -291,7 +292,7 @@ class AIVPN_Gateway:
                     print(
                         f"{Colors.DIM}[{ts_str}]{Colors.RESET} "
                         f"{Colors.YELLOW}[COLD_START]{Colors.RESET} "
-                        f"IP {Colors.GREEN}{ip_src}{Colors.RESET} đang thu thập dữ liệu chuỗi: "
+                        f"Luồng {Colors.GREEN}{flow_key}{Colors.RESET} đang thu thập dữ liệu: "
                         f"{Colors.YELLOW}{current_len}/20{Colors.RESET} ký tự. {Colors.DIM}[Buffer: {''.join(window)}]{Colors.RESET}"
                     )
                     continue
