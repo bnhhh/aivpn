@@ -1,156 +1,410 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIVPN SOC Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>AIVPN Monitor</title>
     <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Courier New', Courier, monospace; }
-        .cyber-panel { background-color: #161b22; border: 1px solid #30363d; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .log-evidence { color: #d29922; }
-        .log-whitelist { color: #8b949e; }
-        .log-critical { background-color: rgba(248, 81, 73, 0.1); color: #ff7b72; border-left: 4px solid #f85149; animation: pulse-bg 2s infinite; }
-        
-        @keyframes pulse-bg { 
-            0% { background-color: rgba(248, 81, 73, 0.1); } 
-            50% { background-color: rgba(248, 81, 73, 0.2); } 
-            100% { background-color: rgba(248, 81, 73, 0.1); } 
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(22, 27, 34, 0.7);
+            --border-color: rgba(48, 54, 61, 0.5);
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-green: #2ea043;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+            --accent-blue: #58a6ff;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(88, 166, 255, 0.04), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(248, 81, 73, 0.04), transparent 25%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        h1 {
+            font-family: var(--font-sans);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        .scrollable-content { max-height: 75vh; overflow-y: auto; }
+        h1::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-blue);
+        }
+
+        .section-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .cyber-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* --- Stats Layout --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-family: var(--font-sans);
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .stat-value.alerts { color: var(--accent-yellow); }
+        .stat-value.blocked { color: var(--accent-red); }
+
+        /* --- Table Layout --- */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin-top: -8px;
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-muted);
+            font-weight: normal;
+            font-size: 0.85rem;
+            padding: 0 1rem 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tr td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        tr td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .status-normal { background: rgba(46, 160, 67, 0.15); color: var(--accent-green); border: 1px solid rgba(46, 160, 67, 0.4); }
+        .status-suspicious { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); border: 1px solid rgba(210, 153, 34, 0.4); }
+        .status-dangerous { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); border: 1px solid rgba(248, 81, 73, 0.4); animation: pulse-red 2s infinite; }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(248, 81, 73, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); }
+        }
+
+        .risk-score {
+            font-family: var(--font-sans);
+            font-weight: 600;
+        }
+
+        /* --- Events Layout --- */
+        .events-container {
+            max-height: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .event-item {
+            font-size: 0.85rem;
+            padding: 0.5rem;
+            border-left: 2px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.01);
+            transition: all 0.3s ease;
+        }
         
-        /* Custom scrollbar for cyber feel */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0d1117; }
-        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        .event-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-left-color: var(--accent-blue);
+        }
+
+        .event-time {
+            color: var(--text-muted);
+            margin-right: 0.5rem;
+        }
+
+        .event-suspicious { border-left-color: var(--accent-yellow); }
+        .event-blocked { border-left-color: var(--accent-red); background: rgba(248, 81, 73, 0.05); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #8b949e; }
+        
+        /* Audio visualizer */
+        #audio-alert { display: none; }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4">
+<body>
 
-    <!-- Header: Counters -->
-    <header class="flex justify-between items-center mb-6 gap-4">
-        <div class="cyber-panel p-4 flex-1 text-center">
-            <h2 class="text-sm text-gray-400 uppercase tracking-wider font-bold">Evidences Collected</h2>
-            <p id="count-evidence" class="text-4xl font-bold text-yellow-500 mt-2 transition-all duration-300">0</p>
-        </div>
-        <div class="cyber-panel p-4 flex-1 text-center">
-            <h2 class="text-sm text-gray-400 uppercase tracking-wider font-bold">Monitored IPs</h2>
-            <p id="count-monitored" class="text-4xl font-bold text-blue-400 mt-2 transition-all duration-300">0</p>
-        </div>
-        <div class="cyber-panel p-4 flex-1 text-center">
-            <h2 class="text-sm text-gray-400 uppercase tracking-wider font-bold">Blocked IPs</h2>
-            <p id="count-blocked" class="text-4xl font-bold text-red-500 mt-2 transition-all duration-300">0</p>
-        </div>
-    </header>
+<div class="container">
+    <h1>AIVPN Monitor</h1>
 
-    <!-- Main Content -->
-    <main class="flex flex-1 gap-6 min-h-0">
-        <!-- Timeline -->
-        <div class="cyber-panel flex flex-col w-2/3 p-4">
-            <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2 text-green-400 flex items-center">
-                <span class="animate-pulse mr-2">⚡</span> Live Evidence Timeline
-            </h2>
-            <div id="timeline" class="flex-1 scrollable-content flex flex-col gap-2 font-mono text-sm pr-2">
-                <!-- Logs will be inserted here -->
-                <div class="p-2 text-gray-500 italic border border-gray-800 rounded text-center" id="waiting-msg">Đang chờ tín hiệu từ Lớp phán quyết...</div>
+    <!-- Traffic Statistics -->
+    <div class="cyber-panel">
+        <div class="section-title">[ Traffic Statistics ]</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">VPN Clients</span>
+                <span class="stat-value" id="stat-clients">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Total Flows</span>
+                <span class="stat-value" id="stat-flows">1245</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Alerts</span>
+                <span class="stat-value alerts" id="stat-alerts">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Blocked</span>
+                <span class="stat-value blocked" id="stat-blocked">0</span>
             </div>
         </div>
+    </div>
 
-        <!-- Blocked IPs -->
-        <div class="cyber-panel flex flex-col w-1/3 p-4">
-            <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2 text-red-500 flex items-center">
-                <span class="mr-2">🚫</span> Firewall Blocked IPs
-            </h2>
-            <ul id="blocked-list" class="flex-1 scrollable-content flex flex-col gap-2 font-mono text-sm pr-2">
-                <!-- Blocked IPs will be inserted here -->
-            </ul>
+    <!-- Client List -->
+    <div class="cyber-panel">
+        <div class="section-title">[ Client List ]</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Status</th>
+                    <th>Risk Score</th>
+                </tr>
+            </thead>
+            <tbody id="client-list-body">
+                <!-- Data injected via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Recent Events -->
+    <div class="cyber-panel">
+        <div class="section-title">[ Recent Events ]</div>
+        <div class="events-container" id="events-list">
+            <!-- Data injected via JS -->
+            <div class="event-item" style="border-left-color: var(--accent-green)">
+                <span class="event-time">[System]</span> AIVPN Monitor initialized and listening for AI verdicts...
+            </div>
         </div>
-    </main>
+    </div>
+</div>
 
-    <script>
-        const monitoredIPs = new Set();
-        const blockedIPs = new Set();
-        let evidenceCount = 0;
+<script>
+    // State management
+    const clientState = new Map(); // IP -> { status, risk, lastUpdate }
+    const stats = {
+        flows: 1245,
+        alerts: 0,
+        blocked: 0
+    };
 
-        const timelineEl = document.getElementById('timeline');
-        const waitingMsg = document.getElementById('waiting-msg');
-        const blockedListEl = document.getElementById('blocked-list');
-        const countEvidenceEl = document.getElementById('count-evidence');
-        const countMonitoredEl = document.getElementById('count-monitored');
-        const countBlockedEl = document.getElementById('count-blocked');
+    // DOM Elements
+    const statClientsEl = document.getElementById('stat-clients');
+    const statFlowsEl = document.getElementById('stat-flows');
+    const statAlertsEl = document.getElementById('stat-alerts');
+    const statBlockedEl = document.getElementById('stat-blocked');
+    const clientListBodyEl = document.getElementById('client-list-body');
+    const eventsListEl = document.getElementById('events-list');
 
-        // Extract IP address from a string using regex
-        function extractIPs(text) {
-            const ipRegex = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
-            return text.match(ipRegex) || [];
-        }
+    // Simulate flow increments for realism
+    setInterval(() => {
+        stats.flows += Math.floor(Math.random() * 3);
+        statFlowsEl.textContent = stats.flows;
+    }, 2000);
 
-        const source = new EventSource("/stream");
-
-        source.onmessage = function(event) {
-            if (waitingMsg) {
-                waitingMsg.remove(); // Remove waiting message on first log
-            }
-
-            const logLine = event.data;
+    // Audio context for pure JS beep sound (no external file needed)
+    function playBeep(isBlocked) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
             
-            // 1. Create timeline element
-            const div = document.createElement('div');
-            div.className = 'p-3 rounded border border-gray-800 break-words shadow-sm transition-all';
-            div.textContent = logLine;
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            osc.type = isBlocked ? 'sawtooth' : 'square';
+            osc.frequency.value = isBlocked ? 200 : 440;
+            
+            gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.5);
+        } catch(e) { console.log('Audio disabled by browser policy'); }
+    }
 
-            // 2. Color Coding & Counters
-            if (logLine.includes('[EVIDENCE]')) {
-                div.classList.add('log-evidence');
-                evidenceCount++;
-                countEvidenceEl.textContent = evidenceCount;
-                
-                // Track monitored IPs from evidence logs
-                const ips = extractIPs(logLine);
-                ips.forEach(ip => monitoredIPs.add(ip));
-                countMonitoredEl.textContent = monitoredIPs.size;
-            } 
-            else if (logLine.includes('[WHITELIST]')) {
-                div.classList.add('log-whitelist');
+    function formatTime() {
+        const now = new Date();
+        return `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+    }
+
+    function addEvent(message, type = 'normal') {
+        const div = document.createElement('div');
+        div.className = `event-item ${type === 'suspicious' ? 'event-suspicious' : type === 'blocked' ? 'event-blocked' : ''}`;
+        div.innerHTML = `<span class="event-time">${formatTime()}</span> ${message}`;
+        eventsListEl.insertBefore(div, eventsListEl.firstChild);
+        
+        if (eventsListEl.children.length > 50) {
+            eventsListEl.removeChild(eventsListEl.lastChild);
+        }
+    }
+
+    function updateClientTable() {
+        clientListBodyEl.innerHTML = '';
+        statClientsEl.textContent = clientState.size;
+        
+        // Sort: Blocked/Dangerous first, then Suspicious, then Normal
+        const sortedClients = Array.from(clientState.entries()).sort((a, b) => b[1].risk - a[1].risk);
+
+        for (const [ip, data] of sortedClients) {
+            const tr = document.createElement('tr');
+            
+            let statusClass = 'status-normal';
+            if (data.status === 'DANGEROUS') statusClass = 'status-dangerous';
+            else if (data.status === 'SUSPICIOUS') statusClass = 'status-suspicious';
+
+            tr.innerHTML = `
+                <td style="font-weight: 600;">${ip}</td>
+                <td><span class="status-badge ${statusClass}">${data.status}</span></td>
+                <td class="risk-score" style="color: ${data.risk > 80 ? 'var(--accent-red)' : data.risk > 40 ? 'var(--accent-yellow)' : 'var(--text-main)'}">${data.risk}</td>
+            `;
+            clientListBodyEl.appendChild(tr);
+        }
+    }
+
+    // Extract IP from text
+    function extractIPs(text) {
+        const match = text.match(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g);
+        return match ? [...new Set(match)] : [];
+    }
+
+    // Server-Sent Events Listener
+    const source = new EventSource("/stream");
+
+    source.onmessage = function(event) {
+        const logLine = event.data;
+        const ips = extractIPs(logLine);
+        
+        if (ips.length === 0) return;
+
+        let requiresUpdate = false;
+
+        ips.forEach(ip => {
+            if (!clientState.has(ip)) {
+                clientState.set(ip, { status: 'NORMAL', risk: 10 }); // Base risk 10
+                requiresUpdate = true;
+                addEvent(`Client ${ip} registered on monitor`, 'normal');
             }
-            else if (logLine.includes('[ALERT]') || logLine.includes('[FIREWALL]') || logLine.includes('[BLOCK]') || logLine.includes('[TỘI DANH ĐỊNH DANH]') || logLine.includes('Tội danh định danh') || logLine.includes('IP Bị Kết Án') || logLine.includes('TIẾN HÀNH KHÓA KHẨN CẤP')) {
-                div.classList.add('log-critical');
+
+            const state = clientState.get(ip);
+
+            // Parsing Logic based on AIVPN Output
+            if (logLine.includes('[EVIDENCE]') || logLine.includes('Suspicious')) {
+                if (state.status === 'NORMAL') {
+                    state.status = 'SUSPICIOUS';
+                    state.risk = Math.min(85, state.risk + 30);
+                    addEvent(`Client ${ip} entered SUSPICIOUS state`, 'suspicious');
+                    stats.alerts++;
+                    statAlertsEl.textContent = stats.alerts;
+                    playBeep(false);
+                    requiresUpdate = true;
+                }
                 
-                // Extract blocked IP and update right panel
-                if (logLine.includes('[FIREWALL]') || logLine.includes('[BLOCK]')) {
-                    const ips = extractIPs(logLine);
-                    ips.forEach(ip => {
-                        if (!blockedIPs.has(ip)) {
-                            blockedIPs.add(ip);
-                            const li = document.createElement('li');
-                            li.className = 'p-2 bg-red-900/20 border border-red-800 rounded text-red-400 flex items-center shadow-sm';
-                            li.innerHTML = `<span class="mr-2 text-lg">⚠️</span> <span>${ip}</span>`;
-                            blockedListEl.insertBefore(li, blockedListEl.firstChild);
-                            
-                            // Pop animation for counter
-                            countBlockedEl.textContent = blockedIPs.size;
-                            countBlockedEl.classList.add('scale-125');
-                            setTimeout(() => countBlockedEl.classList.remove('scale-125'), 200);
-                        }
-                    });
+                // Try to extract AI Score if present (e.g. Score: 0.95 -> 95)
+                const scoreMatch = logLine.match(/0\.[0-9]+/);
+                if (scoreMatch) {
+                    state.risk = Math.floor(parseFloat(scoreMatch[0]) * 100);
+                    requiresUpdate = true;
                 }
             }
 
-            // 3. Insert to top of timeline
-            timelineEl.insertBefore(div, timelineEl.firstChild);
-
-            // Keep timeline from growing infinitely (e.g., max 100 items for performance)
-            if (timelineEl.childElementCount > 100) {
-                timelineEl.removeChild(timelineEl.lastChild);
+            if (logLine.includes('[BLOCK]') || logLine.includes('[FIREWALL]') || logLine.includes('TIẾN HÀNH KHÓA KHẨN CẤP')) {
+                if (state.status !== 'DANGEROUS') {
+                    state.status = 'DANGEROUS';
+                    state.risk = 100;
+                    stats.blocked++;
+                    statBlockedEl.textContent = stats.blocked;
+                    addEvent(`Client ${ip} blocked by policy`, 'blocked');
+                    playBeep(true);
+                    requiresUpdate = true;
+                }
             }
-        };
+        });
 
-        source.onerror = function(err) {
-            console.error("SSE Connection Error:", err);
-            // Re-show waiting msg if needed, though SSE usually auto-reconnects
-        };
-    </script>
+        if (requiresUpdate) {
+            updateClientTable();
+        }
+    };
+    
+    source.onerror = function(err) {
+        console.error("SSE Connection Error", err);
+    };
+
+</script>
+
 </body>
 </html>
