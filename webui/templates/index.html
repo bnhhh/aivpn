@@ -270,10 +270,15 @@
     const clientListBodyEl = document.getElementById('client-list-body');
     const eventsListEl = document.getElementById('events-list');
 
-    // Simulate flow increments for realism
+    // Simulate flow increments for realism ONLY WHEN there are active clients
     setInterval(() => {
-        stats.flows += Math.floor(Math.random() * 3);
-        statFlowsEl.textContent = stats.flows;
+        // Nếu chưa có ai kết nối VPN, Flow không được phép nhảy
+        if (clientState.size > 0) {
+            // Tốc độ nhảy Flow tỷ lệ thuận với số lượng Client đang kết nối
+            const activeClients = clientState.size;
+            stats.flows += Math.floor(Math.random() * 3 * activeClients) + 1;
+            statFlowsEl.textContent = stats.flows;
+        }
     }, 2000);
 
     // Audio context for pure JS beep sound (no external file needed)
