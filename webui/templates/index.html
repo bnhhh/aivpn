@@ -232,7 +232,7 @@
                 <tr>
                     <th>IP Address</th>
                     <th>Status</th>
-                    <th>Risk Score</th>
+                    <th>Confidence</th>
                 </tr>
             </thead>
             <tbody id="client-list-body">
@@ -335,7 +335,7 @@
             tr.innerHTML = `
                 <td style="font-weight: 600;">${ip}</td>
                 <td><span class="status-badge ${statusClass}">${data.status}</span></td>
-                <td class="risk-score" style="color: ${data.risk > 80 ? 'var(--accent-red)' : data.risk > 40 ? 'var(--accent-yellow)' : 'var(--text-main)'}">${data.risk}</td>
+                <td class="risk-score" style="color: ${data.risk > 0.8 ? 'var(--accent-red)' : data.risk > 0.4 ? 'var(--accent-yellow)' : 'var(--text-main)'}">${data.risk.toFixed(2)}</td>
             `;
             clientListBodyEl.appendChild(tr);
         }
@@ -360,7 +360,7 @@
 
         ips.forEach(ip => {
             if (!clientState.has(ip)) {
-                clientState.set(ip, { status: 'NORMAL', risk: 10 }); // Base risk 10
+                clientState.set(ip, { status: 'NORMAL', risk: 0.0 }); // Base conf 0.0
                 requiresUpdate = true;
                 addEvent(`Client ${ip} registered on monitor`, 'normal');
             }
@@ -371,26 +371,27 @@
             if (logLine.includes('[EVIDENCE]') || logLine.includes('Suspicious')) {
                 if (state.status === 'NORMAL') {
                     state.status = 'SUSPICIOUS';
-                    state.risk = Math.min(85, state.risk + 30);
                     addEvent(`Client ${ip} entered SUSPICIOUS state`, 'suspicious');
                     stats.alerts++;
                     statAlertsEl.textContent = stats.alerts;
                     playBeep(false);
                     requiresUpdate = true;
                 }
-                
-                // Try to extract AI Score if present (e.g. Score: 0.95 -> 95)
-                const scoreMatch = logLine.match(/0\.[0-9]+/);
-                if (scoreMatch) {
-                    state.risk = Math.floor(parseFloat(scoreMatch[0]) * 100);
+            }
+
+            // Extract the true AI score from Conf=0.xx or Tổng điểm 1.xx
+            const scoreMatch = logLine.match(/(?:Conf=|Tổng điểm |Score: )\s*(\d+\.\d+)/);
+            if (scoreMatch) {
+                const parsedScore = parseFloat(scoreMatch[1]);
+                if (parsedScore > state.risk) {
+                    state.risk = parsedScore;
                     requiresUpdate = true;
                 }
             }
 
-            if (logLine.includes('[BLOCK]') || logLine.includes('[FIREWALL]') || logLine.includes('TIẾN HÀNH KHÓA KHẨN CẤP')) {
+            if (logLine.includes('[BLOCK]') || logLine.includes('[FIREWALL]') || logLine.includes('TIẾN HÀNH KHÓA KHẨN CẤP') || logLine.includes('Luật Đồng thuận')) {
                 if (state.status !== 'DANGEROUS') {
                     state.status = 'DANGEROUS';
-                    state.risk = 100;
                     stats.blocked++;
                     statBlockedEl.textContent = stats.blocked;
                     addEvent(`Client ${ip} blocked by policy`, 'blocked');
