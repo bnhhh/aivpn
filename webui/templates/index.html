@@ -342,9 +342,10 @@
     }
 
     // Extract IP from text
-    function extractIPs(text) {
-        const match = text.match(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g);
-        return match ? [...new Set(match)] : [];
+    function extractIPs(logLine) {
+        // Extract all IP addresses from the log line
+        const ipRegex = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
+        return [...new Set(logLine.match(ipRegex) || [])];
     }
 
     // Server-Sent Events Listener
