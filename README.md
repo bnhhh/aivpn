@@ -7,7 +7,6 @@
   <img src="https://img.shields.io/badge/Iptables-Kernel-red?style=for-the-badge&logo=linux&logoColor=white" alt="Iptables" />
 </p>
 
-**Tác giả:** Nguyễn Đình Minh (MSSV: 20237365)
 
 ---
 
